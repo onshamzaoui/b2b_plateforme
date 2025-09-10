@@ -23,18 +23,45 @@ export default function SignupPage() {
     }
   }, [searchParams])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setIsLoading(true)
 
-    // Simulation d'inscription
-    setTimeout(() => {
-      setIsLoading(false)
-      if (userType) {
-        router.push(`/dashboard/${userType}`)
-      }
-    }, 1500)
+  const form = e.target as HTMLFormElement
+  const formData = new FormData(form)
+
+  const data = {
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    userType,
+    company: formData.get("company"),
   }
+
+  if (data.password !== data.confirmPassword) {
+    alert("Les mots de passe ne correspondent pas")
+    setIsLoading(false)
+    return
+  }
+
+  const res = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+
+  if (res.ok) {
+    router.push(`/dashboard/${userType}`)
+  } else {
+    const error = await res.json()
+    alert(error.error || "Erreur lors de l'inscription")
+  }
+
+  setIsLoading(false)
+}
+
 
   return (
     <div className="container max-w-md mx-auto py-10">
@@ -70,34 +97,34 @@ export default function SignupPage() {
           {userType === "entreprise" && (
             <div className="grid gap-2">
               <Label htmlFor="company">Nom de l&apos;entreprise</Label>
-              <Input id="company" type="text" placeholder="Votre entreprise" required />
+              <Input id="company" name="company"type="text" placeholder="Votre entreprise" required />
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="firstName">Prénom</Label>
-              <Input id="firstName" type="text" placeholder="Prénom" required />
+              <Input id="firstName" name="firstName" type="text" placeholder="Prénom" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="lastName">Nom</Label>
-              <Input id="lastName" type="text" placeholder="Nom" required />
+              <Input id="lastName" name="lastName" type="text" placeholder="Nom" required />
             </div>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="exemple@domaine.com" required />
+            <Input id="email" name="email" type="email" placeholder="exemple@domaine.com" required />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="password">Mot de passe</Label>
-            <Input id="password" type="password" required />
+            <Input id="password" name="password" type="password" required />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-            <Input id="confirmPassword" type="password" required />
+            <Input id="confirmPassword" name="confirmPassword" type="password" required />
           </div>
 
           <div className="flex items-center space-x-2">
