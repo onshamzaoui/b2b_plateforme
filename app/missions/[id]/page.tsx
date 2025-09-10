@@ -29,8 +29,7 @@ export default function MissionDetailsPage() {
 
 
   if (!mission) {
-    // return <div className="container py-8 text-center">Chargement...</div>
-   return <div className="container py-8 text-center">Mission non trouvée</div>
+     return <div className="container py-8 text-center">Chargement...</div>
  }
 
   return (

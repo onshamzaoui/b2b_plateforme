@@ -37,20 +37,65 @@ export default function CreateMissionPage() {
     setSkills(skills.filter((skill) => skill !== skillToRemove))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   setIsSubmitting(true)
 
-    // Simulation de création de mission
-    setTimeout(() => {
-      setIsSubmitting(false)
-      toast({
-        title: "Mission publiée",
-        description: "Votre mission a été publiée avec succès.",
-      })
-      router.push("/dashboard/entreprise")
-    }, 1500)
+  //   // Simulation de création de mission
+  //   setTimeout(() => {
+  //     setIsSubmitting(false)
+  //     toast({
+  //       title: "Mission publiée",
+  //       description: "Votre mission a été publiée avec succès.",
+  //     })
+  //     router.push("/dashboard/entreprise")
+  //   }, 1500)
+  // }
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setIsSubmitting(true)
+
+  try {
+    const res = await fetch("/api/missions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: (document.getElementById("title") as HTMLInputElement).value,
+        description: (document.getElementById("description") as HTMLTextAreaElement).value,
+        requirements: (document.getElementById("requirements") as HTMLTextAreaElement).value,
+        location: (document.getElementById("location") as HTMLInputElement)?.value || "remote",
+        city: (document.getElementById("city") as HTMLInputElement)?.value || null,
+        duration: (document.getElementById("duration") as HTMLInputElement)?.value || "3 mois",
+        startDate: date ? date.toISOString() : null,
+        workload: (document.getElementById("workload") as HTMLInputElement)?.value || "fulltime",
+        budgetMin: (document.getElementById("budget-min") as HTMLInputElement)?.valueAsNumber || 0,
+        budgetMax: (document.getElementById("budget-max") as HTMLInputElement)?.valueAsNumber || 0,
+        skills,
+      }),
+    })
+
+    if (!res.ok) {
+      throw new Error("Erreur lors de la création")
+    }
+
+    toast({
+      title: "Mission publiée",
+      description: "Votre mission a été publiée avec succès.",
+    })
+
+    router.push("/dashboard/entreprise")
+  } catch (err) {
+    console.error(err)
+    toast({
+      title: "Erreur",
+      description: "Impossible de publier la mission.",
+      variant: "destructive",
+    })
+  } finally {
+    setIsSubmitting(false)
   }
+}
+
 
   return (
     <div className="container py-8">

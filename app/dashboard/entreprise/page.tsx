@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,93 +9,25 @@ import { BriefcaseBusiness, Eye, FileText, PlusCircle, Users } from "lucide-reac
 import Link from "next/link"
 
 export default function EntrepriseDashboard() {
-  // Données fictives pour la démonstration
-  const publishedMissions = [
-    {
-      id: 1,
-      title: "Développement application web React",
-      description:
-        "Développement d'une application web avec React et Node.js pour un client dans le secteur financier.",
-      publishedAt: "01/04/2024",
-      status: "Active",
-      duration: "3 mois",
-      applicants: 5,
-      skills: ["React", "Node.js", "TypeScript", "API REST"],
-    },
-    {
-      id: 2,
-      title: "Refonte UX/UI site e-commerce",
-      description:
-        "Refonte complète de l'interface utilisateur d'un site e-commerce pour améliorer l'expérience client et le taux de conversion.",
-      publishedAt: "05/04/2024",
-      status: "Active",
-      duration: "2 mois",
-      applicants: 3,
-      skills: ["Figma", "UX Design", "UI Design", "Adobe XD"],
-    },
-    {
-      id: 3,
-      title: "Développement API microservices",
-      description: "Création d'une architecture microservices pour une application financière à haute disponibilité.",
-      publishedAt: "28/03/2024",
-      status: "Clôturée",
-      duration: "4 mois",
-      applicants: 8,
-      skills: ["Java", "Spring Boot", "Kubernetes", "Docker"],
-    },
-  ]
+  const [publishedMissions, setPublishedMissions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const applications = [
-    {
-      id: 101,
-      missionId: 1,
-      missionTitle: "Développement application web React",
-      freelanceName: "Sophie Martin",
-      appliedAt: "05/04/2024",
-      status: "Nouveau",
-      matchRate: 95,
-      dailyRate: "550€",
-    },
-    {
-      id: 102,
-      missionId: 1,
-      missionTitle: "Développement application web React",
-      freelanceName: "Thomas Durand",
-      appliedAt: "03/04/2024",
-      status: "Contacté",
-      matchRate: 87,
-      dailyRate: "580€",
-    },
-    {
-      id: 103,
-      missionId: 2,
-      missionTitle: "Refonte UX/UI site e-commerce",
-      freelanceName: "Julie Rousseau",
-      appliedAt: "06/04/2024",
-      status: "Nouveau",
-      matchRate: 92,
-      dailyRate: "510€",
-    },
-  ]
+  // 🔹 Charger les missions depuis l'API
+  useEffect(() => {
+    fetch("/api/missions")
+      .then((res) => res.json())
+      .then((data) => setPublishedMissions(data))
+      .catch((err) => console.error("Erreur chargement missions :", err))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const invoices = [
-    {
-      id: 2001,
-      missionTitle: "Refonte site corporate",
-      freelanceName: "Marie Dupont",
-      amount: "9600€",
-      issueDate: "31/03/2024",
-      status: "En attente",
-    },
-    {
-      id: 2002,
-      missionTitle: "Intégration CRM",
-      freelanceName: "Paul Lefort",
-      amount: "7200€",
-      issueDate: "15/03/2024",
-      status: "Payée",
-    },
-  ]
+  // 🔹 Simuler les applications et factures (on pourra brancher après)
+  const applications: any[] = []
+  const invoices: any[] = []
+
+  if (loading) {
+    return <div className="p-6">Chargement...</div>
+  }
 
   return (
     <div className="container py-8">
@@ -112,7 +45,7 @@ export default function EntrepriseDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{publishedMissions.length}</div>
               <p className="text-sm text-muted-foreground">
-                {publishedMissions.filter((m) => m.status === "Active").length} missions actives
+                {publishedMissions.filter((m) => m.status === "PUBLISHED").length} missions actives
               </p>
             </CardContent>
             <CardFooter>
@@ -124,6 +57,7 @@ export default function EntrepriseDashboard() {
               </Button>
             </CardFooter>
           </Card>
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Candidatures reçues</CardTitle>
@@ -143,6 +77,7 @@ export default function EntrepriseDashboard() {
               </Button>
             </CardFooter>
           </Card>
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Facturation</CardTitle>
@@ -185,155 +120,56 @@ export default function EntrepriseDashboard() {
               <h2 className="text-xl font-semibold">Missions publiées</h2>
 
               <div className="grid gap-4">
-                {publishedMissions.map((mission) => (
-                  <Card key={mission.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{mission.title}</CardTitle>
-                          <CardDescription>Publiée le {mission.publishedAt}</CardDescription>
-                        </div>
-                        <Badge
-                          variant={mission.status === "Active" ? "default" : "secondary"}
-                          className={`${mission.status === "Active" ? "bg-green-600" : ""}`}
-                        >
-                          {mission.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{mission.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {mission.skills.map((skill) => (
-                          <Badge key={skill} variant="secondary">
-                            {skill}
+                {publishedMissions.length === 0 ? (
+                  <p>Aucune mission publiée pour l’instant.</p>
+                ) : (
+                  publishedMissions.map((mission) => (
+                    <Card key={mission.id}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle>{mission.title}</CardTitle>
+                            <CardDescription>
+                              Publiée le {new Date(mission.createdAt).toLocaleDateString("fr-FR")}
+                            </CardDescription>
+                          </div>
+                          <Badge
+                            variant={mission.status === "PUBLISHED" ? "default" : "secondary"}
+                            className={`${mission.status === "PUBLISHED" ? "bg-green-600" : ""}`}
+                          >
+                            {mission.status}
                           </Badge>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="font-medium">Durée :</span> {mission.duration}
                         </div>
-                        <div>
-                          <span className="font-medium">Candidatures :</span> {mission.applicants}
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">{mission.description}</p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium">Budget :</span> {mission.budget} €
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Button asChild variant="outline">
-                        <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
-                      </Button>
-                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                        <Link href={`/missions/${mission.id}/applications`}>
-                          Voir les candidatures ({mission.applicants})
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                        <Button asChild variant="outline">
+                          <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
+                        </Button>
+                        <Button asChild className="bg-violet-600 hover:bg-violet-700">
+                          <Link href={`/missions/${mission.id}`}>Voir la mission</Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="applications" id="applications">
-            <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Candidatures reçues</h2>
-
-              <div className="grid gap-4">
-                {applications.map((application) => (
-                  <Card key={application.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{application.freelanceName}</CardTitle>
-                          <CardDescription>Pour : {application.missionTitle}</CardDescription>
-                        </div>
-                        <Badge
-                          variant={application.status === "Nouveau" ? "default" : "secondary"}
-                          className={`${application.status === "Nouveau" ? "bg-violet-600" : ""}`}
-                        >
-                          {application.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div>
-                          <span className="font-medium">Candidature le :</span> {application.appliedAt}
-                        </div>
-                        <div>
-                          <span className="font-medium">Taux journalier :</span> {application.dailyRate}
-                        </div>
-                        <div>
-                          <span className="font-medium">Compatibilité :</span>
-                          <Badge variant="outline" className="ml-1">
-                            {application.matchRate}%
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Button asChild variant="outline">
-                        <Link href={`/freelancers/${application.id}`}>Profil du freelance</Link>
-                      </Button>
-                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                        <Link href={`/applications/${application.id}`}>Voir candidature</Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            <p>Ici tu affiches les candidatures reçues (à brancher plus tard).</p>
           </TabsContent>
 
           <TabsContent value="invoices" id="invoices">
-            <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Factures</h2>
-
-              <div className="grid gap-4">
-                {invoices.map((invoice) => (
-                  <Card key={invoice.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>Facture #{invoice.id}</CardTitle>
-                          <CardDescription>
-                            {invoice.missionTitle} - {invoice.freelanceName}
-                          </CardDescription>
-                        </div>
-                        <Badge variant={invoice.status === "Payée" ? "secondary" : "outline"}>{invoice.status}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="font-medium">Montant :</span> {invoice.amount}
-                        </div>
-                        <div>
-                          <span className="font-medium">Date d'émission :</span> {invoice.issueDate}
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Button asChild variant="outline">
-                        <Link href={`/invoices/${invoice.id}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Détails
-                        </Link>
-                      </Button>
-                      <Button
-                        asChild
-                        className={invoice.status === "En attente" ? "bg-violet-600 hover:bg-violet-700" : ""}
-                      >
-                        <Link href={`/invoices/${invoice.id}/pay`}>
-                          {invoice.status === "En attente" ? "Payer" : "Télécharger"}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            <p>Ici tu affiches les factures (à brancher plus tard).</p>
           </TabsContent>
         </Tabs>
       </div>
