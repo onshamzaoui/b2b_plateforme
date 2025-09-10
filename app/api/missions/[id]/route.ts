@@ -3,18 +3,25 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await context.params  // ✅ await required in Next.js 15
+
     const mission = await prisma.mission.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { company: true }
     })
 
-    if (!mission) return new NextResponse("Mission non trouvée", { status: 404 })
+    if (!mission) {
+      return NextResponse.json({ error: "CHARGEMENT..." }, { status: 404 })
+    }
 
     return NextResponse.json(mission)
   } catch (error) {
-    console.error("Erreur dans GET /api/missions/[id]:", error)
-    return new NextResponse("Erreur serveur", { status: 500 })
+    console.error("Erreur API mission :", error)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

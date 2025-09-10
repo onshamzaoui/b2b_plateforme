@@ -19,15 +19,18 @@ async function main() {
         budget: 5000,
         status: "PUBLISHED",
         companyId: entreprise.id,
-      },
-      {
-        title: "Intégration Stripe",
-        description: "Intégrer l'API Stripe pour les paiements.",
-        budget: 2500,
-        status: "PUBLISHED",
-        companyId: entreprise.id,
-      },
-    ],
+        location: "Remote (Europe)",
+        startDate: "Dès que possible",
+        duration: "3 mois",
+        pricing: "550€ - 600€ / jour",
+        publishedAt: new Date("2024-04-01"),
+        requirements: "Maîtrise de React, Node.js, TypeScript.",
+        projectContext: "Développement d’une plateforme pour les clients professionnels.",
+        skills: ["React", "TypeScript", "API REST", "Redux", "Tests unitaires", "CSS/SASS"],
+        companyLogo: "/logo-innovtech.svg",
+        companyDescription: "InnovTech est une entreprise spécialisée dans les solutions SaaS."
+      }
+    ]
   })
 
   console.log("✅ Base de données remplie avec succès.")
