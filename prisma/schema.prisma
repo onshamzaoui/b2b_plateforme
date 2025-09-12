@@ -49,14 +49,24 @@ model Mission {
 
 
 model Application {
-  id          String    @id @default(uuid())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  mission     Mission   @relation(fields: [missionId], references: [id])
+  id          String   @id @default(uuid())
+  appliedAt   DateTime @default(now())
+  status      String   @default("Nouveau") // Nouveau, Contacté, Refusé
+  dailyRate   Int
+  availability String?
+  matchScore  Int
+  motivation  String?
+  experience  String?
+  portfolio   String[]
+  skills      String[]
+
+  // Relations
   missionId   String
-  status      AppStatus @default(PENDING)
-  appliedAt   DateTime  @default(now())
+  mission     Mission  @relation(fields: [missionId], references: [id])
+  freelancerId String
+  freelancer   User     @relation(fields: [freelancerId], references: [id])
 }
+
 
 model Invoice {
   id         String   @id @default(uuid())

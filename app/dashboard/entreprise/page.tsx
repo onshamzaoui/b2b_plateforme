@@ -21,9 +21,30 @@ export default function EntrepriseDashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // 🔹 Simuler les applications et factures (on pourra brancher après)
-  const applications: any[] = []
-  const invoices: any[] = []
+  // 🔹 Candidatures et factures (placeholder pour l’instant)
+  const applications = [
+    {
+      id: 101,
+      missionId: 1,
+      missionTitle: "Développement application web React",
+      freelanceName: "Sophie Martin",
+      appliedAt: "05/04/2024",
+      status: "Nouveau",
+      matchRate: 95,
+      dailyRate: "550€",
+    },
+  ]
+
+  const invoices = [
+    {
+      id: 2001,
+      missionTitle: "Refonte site corporate",
+      freelanceName: "Marie Dupont",
+      amount: "9600€",
+      issueDate: "31/03/2024",
+      status: "En attente",
+    },
+  ]
 
   if (loading) {
     return <div className="p-6">Chargement...</div>
@@ -36,14 +57,18 @@ export default function EntrepriseDashboard() {
         <p className="text-muted-foreground">Gérez vos missions et trouvez des talents</p>
       </div>
 
+      {/* Statistiques */}
       <div className="grid gap-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 📌 Missions publiées */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Missions publiées</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{publishedMissions.length}</div>
+              <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">
+                {publishedMissions.length}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {publishedMissions.filter((m) => m.status === "PUBLISHED").length} missions actives
               </p>
@@ -58,6 +83,7 @@ export default function EntrepriseDashboard() {
             </CardFooter>
           </Card>
 
+          {/* 📌 Candidatures */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Candidatures reçues</CardTitle>
@@ -78,6 +104,7 @@ export default function EntrepriseDashboard() {
             </CardFooter>
           </Card>
 
+          {/* 📌 Facturation */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Facturation</CardTitle>
@@ -99,6 +126,7 @@ export default function EntrepriseDashboard() {
           </Card>
         </div>
 
+        {/* Bouton publier mission */}
         <div className="flex justify-end mb-2">
           <Button asChild className="bg-violet-600 hover:bg-violet-700">
             <Link href="/missions/create">
@@ -108,6 +136,7 @@ export default function EntrepriseDashboard() {
           </Button>
         </div>
 
+        {/* Onglets */}
         <Tabs defaultValue="missions" className="w-full">
           <TabsList className="grid grid-cols-3 max-w-md mb-4">
             <TabsTrigger value="missions">Mes missions</TabsTrigger>
@@ -115,10 +144,10 @@ export default function EntrepriseDashboard() {
             <TabsTrigger value="invoices">Factures</TabsTrigger>
           </TabsList>
 
+          {/* 📌 Mes missions */}
           <TabsContent value="missions" id="published-missions">
             <div className="grid gap-4">
               <h2 className="text-xl font-semibold">Missions publiées</h2>
-
               <div className="grid gap-4">
                 {publishedMissions.length === 0 ? (
                   <p>Aucune mission publiée pour l’instant.</p>
@@ -135,7 +164,7 @@ export default function EntrepriseDashboard() {
                           </div>
                           <Badge
                             variant={mission.status === "PUBLISHED" ? "default" : "secondary"}
-                            className={`${mission.status === "PUBLISHED" ? "bg-green-600" : ""}`}
+                            className={mission.status === "PUBLISHED" ? "bg-green-600" : ""}
                           >
                             {mission.status}
                           </Badge>
@@ -149,14 +178,17 @@ export default function EntrepriseDashboard() {
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <Button asChild variant="outline">
-                          <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
-                        </Button>
-                        <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                          <Link href={`/missions/${mission.id}`}>Voir la mission</Link>
-                        </Button>
-                      </CardFooter>
+                   <CardFooter className="flex justify-between">
+  <Button asChild variant="outline">
+    <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
+  </Button>
+  <Button asChild className="bg-violet-600 hover:bg-violet-700">
+<Link href={`/missions/${mission.id}/applications`}>
+      Voir les applications
+    </Link>
+  </Button>
+</CardFooter>
+
                     </Card>
                   ))
                 )}
@@ -164,12 +196,83 @@ export default function EntrepriseDashboard() {
             </div>
           </TabsContent>
 
+          {/* 📌 Candidatures */}
           <TabsContent value="applications" id="applications">
-            <p>Ici tu affiches les candidatures reçues (à brancher plus tard).</p>
+            <div className="grid gap-4">
+              <h2 className="text-xl font-semibold">Candidatures reçues</h2>
+              {applications.length === 0 ? (
+                <p>Aucune candidature reçue pour l’instant.</p>
+              ) : (
+                applications.map((app) => (
+                  <Card key={app.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{app.freelanceName}</CardTitle>
+                          <CardDescription>Pour : {app.missionTitle}</CardDescription>
+                        </div>
+                        <Badge variant={app.status === "Nouveau" ? "default" : "secondary"}>{app.status}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">Candidature le {app.appliedAt}</p>
+                      <p className="text-sm">Taux journalier : {app.dailyRate}</p>
+                      <p className="text-sm">Compatibilité : {app.matchRate}%</p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline">
+                        <Link href={`/freelancers/${app.id}`}>Profil du freelance</Link>
+                      </Button>
+                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
+                        <Link href={`/applications/${app.id}`}>Voir candidature</Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
 
+          {/* 📌 Factures */}
           <TabsContent value="invoices" id="invoices">
-            <p>Ici tu affiches les factures (à brancher plus tard).</p>
+            <div className="grid gap-4">
+              <h2 className="text-xl font-semibold">Factures</h2>
+              {invoices.length === 0 ? (
+                <p>Aucune facture pour l’instant.</p>
+              ) : (
+                invoices.map((invoice) => (
+                  <Card key={invoice.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Facture #{invoice.id}</CardTitle>
+                          <CardDescription>
+                            {invoice.missionTitle} - {invoice.freelanceName}
+                          </CardDescription>
+                        </div>
+                        <Badge>{invoice.status}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">Montant : {invoice.amount}</p>
+                      <p className="text-sm">Émise le : {invoice.issueDate}</p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline">
+                        <Link href={`/invoices/${invoice.id}`}>
+                          <Eye className="mr-2 h-4 w-4" /> Détails
+                        </Link>
+                      </Button>
+                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
+                        <Link href={`/invoices/${invoice.id}/pay`}>
+                          {invoice.status === "En attente" ? "Payer" : "Télécharger"}
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
