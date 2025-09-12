@@ -1,7 +1,7 @@
 "use client"
 
-import type React from "react"
-
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,14 +15,28 @@ import { CalendarIcon, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
 
 export default function CreateMissionPage() {
   const { toast } = useToast()
   const router = useRouter()
+
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Champs principaux
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [requirements, setRequirements] = useState("")
+
+  // Infos conditions
+  const [location, setLocation] = useState("remote")
+  const [city, setCity] = useState("")
+  const [duration, setDuration] = useState("3months")
   const [date, setDate] = useState<Date>()
+  const [workload, setWorkload] = useState("fulltime")
+  const [budgetMin, setBudgetMin] = useState<number>(0)
+  const [budgetMax, setBudgetMax] = useState<number>(0)
+
+  // Skills
   const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
 
@@ -37,65 +51,52 @@ export default function CreateMissionPage() {
     setSkills(skills.filter((skill) => skill !== skillToRemove))
   }
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault()
-  //   setIsSubmitting(true)
-
-  //   // Simulation de création de mission
-  //   setTimeout(() => {
-  //     setIsSubmitting(false)
-  //     toast({
-  //       title: "Mission publiée",
-  //       description: "Votre mission a été publiée avec succès.",
-  //     })
-  //     router.push("/dashboard/entreprise")
-  //   }, 1500)
-  // }
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setIsSubmitting(true)
+    e.preventDefault()
+    setIsSubmitting(true)
 
-  try {
-    const res = await fetch("/api/missions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: (document.getElementById("title") as HTMLInputElement).value,
-        description: (document.getElementById("description") as HTMLTextAreaElement).value,
-        requirements: (document.getElementById("requirements") as HTMLTextAreaElement).value,
-        location: (document.getElementById("location") as HTMLInputElement)?.value || "remote",
-        city: (document.getElementById("city") as HTMLInputElement)?.value || null,
-        duration: (document.getElementById("duration") as HTMLInputElement)?.value || "3 mois",
-        startDate: date ? date.toISOString() : null,
-        workload: (document.getElementById("workload") as HTMLInputElement)?.value || "fulltime",
-        budgetMin: (document.getElementById("budget-min") as HTMLInputElement)?.valueAsNumber || 0,
-        budgetMax: (document.getElementById("budget-max") as HTMLInputElement)?.valueAsNumber || 0,
-        skills,
-      }),
-    })
-
-    if (!res.ok) {
-      throw new Error("Erreur lors de la création")
-    }
-
-    toast({
-      title: "Mission publiée",
-      description: "Votre mission a été publiée avec succès.",
-    })
-
-    router.push("/dashboard/entreprise")
-  } catch (err) {
-    console.error(err)
-    toast({
-      title: "Erreur",
-      description: "Impossible de publier la mission.",
-      variant: "destructive",
-    })
-  } finally {
-    setIsSubmitting(false)
-  }
+    try {
+      const res = await fetch("/api/missions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          requirements,
+          location,
+          city,
+          duration,
+          startDate: date ? date.toISOString() : null,
+          workload,
+          budgetMin,
+          budgetMax,
+          skills,
+        }),
+      })
+if (!res.ok) {
+  const errorText = await res.text()
+  console.error("Réponse API:", res.status, errorText)
+  throw new Error("Erreur lors de la création")
 }
+ 
 
+      toast({
+        title: "Mission publiée",
+        description: "Votre mission a été publiée avec succès.",
+      })
+
+      router.push("/dashboard/entreprise")
+    } catch (err) {
+      console.error("Erreur création mission :", err)
+      toast({
+        title: "Erreur",
+        description: "Impossible de publier la mission.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="container py-8">
@@ -108,6 +109,7 @@ export default function CreateMissionPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* --- Infos principales --- */}
           <Card>
             <CardHeader>
               <CardTitle>Informations principales</CardTitle>
@@ -116,16 +118,21 @@ export default function CreateMissionPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="title">Titre de la mission</Label>
-                <Input id="title" placeholder="Ex: Développement d'une application mobile React Native" required />
-                <p className="text-xs text-muted-foreground">
-                  Choisissez un titre clair qui décrit précisément la mission
-                </p>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Développement d'une application mobile React Native"
+                  required
+                />
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="description">Description détaillée</Label>
                 <Textarea
                   id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Décrivez précisément la mission, les tâches à réaliser et les livrables attendus..."
                   className="min-h-32"
                   required
@@ -136,12 +143,15 @@ export default function CreateMissionPage() {
                 <Label htmlFor="requirements">Compétences requises et prérequis</Label>
                 <Textarea
                   id="requirements"
+                  value={requirements}
+                  onChange={(e) => setRequirements(e.target.value)}
                   placeholder="Listez les compétences techniques, l'expérience requise, et autres prérequis..."
                   className="min-h-24"
                   required
                 />
               </div>
 
+              {/* Skills */}
               <div className="grid gap-2">
                 <Label>Compétences clés</Label>
                 <div className="flex gap-2">
@@ -177,7 +187,6 @@ export default function CreateMissionPage() {
                           onClick={() => handleRemoveSkill(skill)}
                         >
                           <Trash2 className="h-3 w-3" />
-                          <span className="sr-only">Supprimer {skill}</span>
                         </Button>
                       </div>
                     ))}
@@ -187,6 +196,7 @@ export default function CreateMissionPage() {
             </CardContent>
           </Card>
 
+          {/* --- Conditions mission --- */}
           <Card>
             <CardHeader>
               <CardTitle>Conditions de la mission</CardTitle>
@@ -196,7 +206,7 @@ export default function CreateMissionPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="location">Lieu de travail</Label>
-                  <Select defaultValue="remote">
+                  <Select value={location} onValueChange={setLocation}>
                     <SelectTrigger id="location">
                       <SelectValue placeholder="Sélectionnez un type de travail" />
                     </SelectTrigger>
@@ -209,15 +219,15 @@ export default function CreateMissionPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="city">Ville (si sur site/hybride)</Label>
-                  <Input id="city" placeholder="Ex: Paris" />
+                  <Label htmlFor="city">Ville</Label>
+                  <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Paris" />
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="duration">Durée estimée</Label>
-                  <Select defaultValue="3months">
+                  <Select value={duration} onValueChange={setDuration}>
                     <SelectTrigger id="duration">
                       <SelectValue placeholder="Sélectionnez une durée" />
                     </SelectTrigger>
@@ -252,7 +262,7 @@ export default function CreateMissionPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="workload">Charge de travail</Label>
-                  <Select defaultValue="fulltime">
+                  <Select value={workload} onValueChange={setWorkload}>
                     <SelectTrigger id="workload">
                       <SelectValue placeholder="Sélectionnez une charge" />
                     </SelectTrigger>
@@ -267,14 +277,29 @@ export default function CreateMissionPage() {
                 <div className="grid gap-2">
                   <Label htmlFor="budget-range">Budget / TJM</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input id="budget-min" type="number" placeholder="Min €" min="0" />
-                    <Input id="budget-max" type="number" placeholder="Max €" min="0" />
+                    <Input
+                      id="budget-min"
+                      type="number"
+                      placeholder="Min €"
+                      min="0"
+                      value={budgetMin}
+                      onChange={(e) => setBudgetMin(Number(e.target.value))}
+                    />
+                    <Input
+                      id="budget-max"
+                      type="number"
+                      placeholder="Max €"
+                      min="0"
+                      value={budgetMax}
+                      onChange={(e) => setBudgetMax(Number(e.target.value))}
+                    />
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* --- Submit --- */}
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline">
               Enregistrer en brouillon

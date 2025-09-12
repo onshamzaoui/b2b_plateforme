@@ -1,8 +1,8 @@
-import NextAuth, { NextAuthOptions } from "next-auth"
+// import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaClient } from "@prisma/client"
-import { compare } from "bcryptjs"
-// import { compare } from "bcryptjs"
+import bcrypt from "bcryptjs"
+import NextAuth, { NextAuthOptions } from "next-auth"
 
 const prisma = new PrismaClient()
 
@@ -11,22 +11,36 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: "Email", type: "text" },
+        password: { label: "Mot de passe", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) return null
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email et mot de passe requis")
+        }
 
+        // Cherche l'utilisateur
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         })
 
-        if (!user) return null
+        if (!user) {
+          throw new Error("Utilisateur non trouvé")
+        }
 
-        const isValid = await compare(credentials.password, user.password)
-        if (!isValid) return null
+        // Vérifie le mot de passe
+        const isValid = await bcrypt.compare(credentials.password, user.password)
+        if (!isValid) {
+          throw new Error("Mot de passe incorrect")
+        }
 
-        return user
+        // ✅ Retourne les infos stockées dans la session
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        }
       },
     }),
   ],
@@ -36,8 +50,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
         token.id = user.id
+        token.role = user.role
       }
       return token
     },
@@ -48,6 +62,9 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+  },
+  pages: {
+    signIn: "/auth/login",
   },
 }
 
