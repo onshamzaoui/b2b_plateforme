@@ -50,6 +50,7 @@ export default function Home() {
         </div>
       </section>
 
+
       {/* Features Section */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4 md:px-6">
