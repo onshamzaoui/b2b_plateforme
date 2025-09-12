@@ -5,27 +5,54 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Building, MapPin, Share } from "lucide-react"
+import { Building, MapPin, Share, CheckCircle } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { useSession } from "next-auth/react"
 
 export default function MissionDetailsPage() {
   const params = useParams()
   const id = params?.id as string
+  const { data: session } = useSession()
 
   const [mission, setMission] = useState<any>(null)
+  const [userApplications, setUserApplications] = useState<any[]>([])
+  const [hasApplied, setHasApplied] = useState(false)
 
   useEffect(() => {
-  fetch(`/api/missions/${id}`)
-    .then(async (res) => {
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur inconnue")
+    const fetchData = async () => {
+      try {
+        // Fetch mission details
+        const missionResponse = await fetch(`/api/missions/${id}`)
+        const missionData = await missionResponse.json()
+        
+        if (!missionResponse.ok) {
+          throw new Error(missionData.error || "Erreur inconnue")
+        }
+        
+        setMission(missionData)
+
+        // Fetch user applications if authenticated and is a freelance
+        if (session?.user?.id && session?.user?.role === "FREELANCE") {
+          const applicationsResponse = await fetch("/api/dashboard/freelance")
+          if (applicationsResponse.ok) {
+            const dashboardData = await applicationsResponse.json()
+            const applications = dashboardData.applications || []
+            setUserApplications(applications)
+            
+            // Check if user has applied to this specific mission
+            const applied = applications.some((app: any) => app.missionId === id)
+            setHasApplied(applied)
+          }
+        }
+      } catch (error) {
+        console.error("Erreur de chargement :", error)
       }
-      return data
-    })
-    .then((data) => setMission(data))
-    // .catch((err) => console.error("Erreur de chargement :", err.message))
-}, [id])
+    }
+
+    if (id) {
+      fetchData()
+    }
+  }, [id, session])
 
 
   if (!mission) {
@@ -69,9 +96,22 @@ export default function MissionDetailsPage() {
               </div>
             </div>
 
-            <Button asChild className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700">
-              <Link href={`/missions/${mission.id}/apply`}>Postuler à cette mission</Link>
-            </Button>
+            {session?.user?.role === "FREELANCE" ? (
+              hasApplied ? (
+                <Button disabled className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Candidature envoyée
+                </Button>
+              ) : (
+                <Button asChild className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700">
+                  <Link href={`/missions/${mission.id}/apply`}>Postuler à cette mission</Link>
+                </Button>
+              )
+            ) : (
+              <Button asChild className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700">
+                <Link href={`/missions/${mission.id}`}>Voir les détails</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

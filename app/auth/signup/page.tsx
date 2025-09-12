@@ -9,12 +9,16 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
+import { signIn } from "next-auth/react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function SignupPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const [userType, setUserType] = useState<"freelance" | "entreprise" | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
   useEffect(() => {
     const type = searchParams.get("type")
@@ -41,7 +45,11 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 
   if (data.password !== data.confirmPassword) {
-    alert("Les mots de passe ne correspondent pas")
+    toast({
+      title: "Erreur",
+      description: "Les mots de passe ne correspondent pas",
+      variant: "destructive",
+    })
     setIsLoading(false)
     return
   }
@@ -53,10 +61,47 @@ const handleSubmit = async (e: React.FormEvent) => {
   })
 
   if (res.ok) {
-    router.push(`/dashboard/${userType}`)
+    setIsSigningIn(true)
+    try {
+      // Automatically sign in the user after successful registration
+      const signInResult = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      })
+
+      if (signInResult?.ok) {
+        // Show success message and redirect to dashboard
+        toast({
+          title: "Succès",
+          description: "Compte créé et connexion réussie !",
+        })
+        router.push(`/dashboard/${userType}`)
+      } else {
+        // If auto-signin fails, redirect to login page
+        toast({
+          title: "Compte créé",
+          description: "Votre compte a été créé avec succès. Veuillez vous connecter.",
+        })
+        router.push("/auth/login")
+      }
+    } catch (signInError) {
+      console.error("Erreur lors de la connexion automatique:", signInError)
+      // If auto-signin fails due to error, redirect to login page
+      toast({
+        title: "Compte créé",
+        description: "Votre compte a été créé avec succès. Veuillez vous connecter.",
+      })
+      router.push("/auth/login")
+    }
+    setIsSigningIn(false)
   } else {
     const error = await res.json()
-    alert(error.error || "Erreur lors de l'inscription")
+    toast({
+      title: "Erreur",
+      description: error.error || "Erreur lors de l'inscription",
+      variant: "destructive",
+    })
   }
 
   setIsLoading(false)
@@ -141,8 +186,8 @@ const handleSubmit = async (e: React.FormEvent) => {
             </Label>
           </div>
 
-          <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700" disabled={isLoading || !userType}>
-            {isLoading ? "Création en cours..." : "Créer mon compte"}
+          <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700" disabled={isLoading || isSigningIn || !userType}>
+            {isLoading ? "Création en cours..." : isSigningIn ? "Connexion en cours..." : "Créer mon compte"}
           </Button>
         </form>
 

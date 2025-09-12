@@ -40,7 +40,15 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json(
-      { message: "Utilisateur créé avec succès", user: { id: user.id, email: user.email, role: user.role } },
+      { 
+        message: "Utilisateur créé avec succès", 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          role: user.role,
+          name: user.name
+        } 
+      },
       { status: 201 }
     )
   } catch (error) {
