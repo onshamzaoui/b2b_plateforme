@@ -6,10 +6,10 @@ import Image from "next/image"
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full mx-auto max-w-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-16 md:py-24">
-        <div className="container px-4 md:px-6">
+      <section className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-16 md:py-24 ">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
             <div className="space-y-4">
               <div className="inline-block rounded-lg bg-violet-100 dark:bg-violet-900/20 px-3 py-1 text-sm text-violet-600 dark:text-violet-300 mb-2">
@@ -52,7 +52,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="py-12 md:py-20">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Comment ça fonctionne</h2>
             <p className="text-gray-500 dark:text-gray-400 md:text-lg max-w-2xl mx-auto">
@@ -89,7 +89,7 @@ export default function Home() {
 
       {/* Statistics Section */}
       <section className="bg-gray-50 dark:bg-gray-800/50 py-12 md:py-20">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
             <div className="text-center">
               <p className="text-3xl md:text-4xl font-bold text-violet-600 dark:text-violet-400">1000+</p>
@@ -113,7 +113,7 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <section className="py-12 md:py-20">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Ils nous font confiance</h2>
             <p className="text-gray-500 dark:text-gray-400 md:text-lg max-w-2xl mx-auto">
@@ -124,7 +124,9 @@ export default function Home() {
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full mr-4"></div>
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-200 to-violet-300 dark:from-violet-700 dark:to-violet-800 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-violet-600 dark:text-violet-200 text-lg font-semibold">ML</span>
+                </div>
                 <div>
                   <h4 className="font-semibold">Marie Laurent</h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Développeuse Web</p>
@@ -137,7 +139,9 @@ export default function Home() {
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full mr-4"></div>
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-200 to-violet-300 dark:from-violet-700 dark:to-violet-800 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-violet-600 dark:text-violet-200 text-lg font-semibold">TD</span>
+                </div>
                 <div>
                   <h4 className="font-semibold">Thomas Dubois</h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Directeur Technique, TechCorp</p>
@@ -150,7 +154,9 @@ export default function Home() {
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full mr-4"></div>
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-200 to-violet-300 dark:from-violet-700 dark:to-violet-800 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-violet-600 dark:text-violet-200 text-lg font-semibold">SM</span>
+                </div>
                 <div>
                   <h4 className="font-semibold">Sophie Martin</h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Designer UX/UI</p>
@@ -166,8 +172,8 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-violet-600 dark:bg-violet-800 text-white py-12 md:py-20">
-        <div className="container px-4 md:px-6 text-center">
+      <section className="bg-violet-600 dark:bg-violet-800 text-white py-12 md:py-20 w-full max-w-screen mx-auto">
+        <div className="container mx-auto px-4 md:px-6 text-center">
           <h2 className="text-3xl font-bold mb-4">Prêt à démarrer ?</h2>
           <p className="mb-8 max-w-2xl mx-auto">
             Rejoignez FreelanceConnect et accédez à un écosystème professionnel de freelances et d'entreprises.

@@ -2,12 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 
 model User {
   id        String    @id @default(uuid())
@@ -16,65 +14,101 @@ model User {
   password  String
   role      Role
   companyName String?   
+  
+  // Personal Information
+  phone     String?
+  location  String?
+  website   String?
+  linkedin  String?
+  github    String?
+  profileImage String?
+  
+  // Professional Information (for freelances)
+  profession String?
+  bio       String?
+  experience String?
+  dailyRate Int?
+  availability String?
+  skills    String[]
+  portfolio String[]
+  
+  // Company Information (for entreprises)
+  companyDescription String?
+  companySize String?
+  companySector String?
+  companyWebsite String?
+  companyLogo String?
+  
+  // Notification Preferences
+  notificationsNewMissions Boolean @default(true)
+  notificationsApplications Boolean @default(true)
+  notificationsMarketing Boolean @default(false)
+  
+  // Relations
   missions  Mission[] @relation("CompanyMissions")
   applications Application[]
   invoices Invoice[]
+  cvs CV[]
   createdAt DateTime  @default(now())
-
+  updatedAt DateTime  @updatedAt
 }
 
 model Mission {
-  id               String        @id @default(uuid())
-  title            String
-  description      String
-  budget           Float
-  status           MissionStatus @default(PUBLISHED)
-  company          User          @relation("CompanyMissions", fields: [companyId], references: [id])
-  companyId        String
-
-  requirements     String?       // ← nouveau
-  projectContext   String?       // ← nouveau
-  skills           String[]      // ← nouveau
-  location         String?       // ← nouveau
-  startDate        String?       // ← nouveau
-  duration         String?       // ← nouveau
-  pricing          String?       // ← nouveau
-  publishedAt      DateTime?     // ← nouveau
-  companyLogo      String?       // ← nouveau
-  companyDescription String?     // ← nouveau
-
-  applications     Application[]
-  createdAt        DateTime      @default(now())
+  id                 String        @id @default(uuid())
+  title              String
+  description        String
+  budget             Float
+  status             MissionStatus @default(PUBLISHED)
+  companyId          String
+  requirements       String?
+  projectContext     String?
+  skills             String[]
+  location           String?
+  startDate          String?
+  duration           String?
+  pricing            String?
+  publishedAt        DateTime?
+  companyLogo        String?
+  companyDescription String?
+  createdAt          DateTime      @default(now())
+  applications       Application[]
+  company            User          @relation("CompanyMissions", fields: [companyId], references: [id])
 }
-
 
 model Application {
-  id          String   @id @default(uuid())
-  appliedAt   DateTime @default(now())
-  status      String   @default("Nouveau") // Nouveau, Contacté, Refusé
-  dailyRate   Int
+  id           String   @id @default(uuid())
+  missionId    String
+  appliedAt    DateTime @default(now())
   availability String?
-  matchScore  Int
-  motivation  String?
-  experience  String?
-  portfolio   String[]
-  skills      String[]
-
-  // Relations
-  missionId   String
-  mission     Mission  @relation(fields: [missionId], references: [id])
+  dailyRate    Int
+  experience   String?
   freelancerId String
+  matchScore   Int
+  motivation   String?
+  portfolio    String[]
+  skills       String[]
+  status       String   @default("Nouveau")
   freelancer   User     @relation(fields: [freelancerId], references: [id])
+  mission      Mission  @relation(fields: [missionId], references: [id])
 }
 
-
 model Invoice {
-  id         String   @id @default(uuid())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  amount     Float
-  status     InvoiceStatus @default(PENDING)
-  issuedAt   DateTime @default(now())
+  id       String        @id @default(uuid())
+  userId   String
+  amount   Float
+  status   InvoiceStatus @default(PENDING)
+  issuedAt DateTime      @default(now())
+  user     User          @relation(fields: [userId], references: [id])
+}
+
+model CV {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  path      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 enum Role {

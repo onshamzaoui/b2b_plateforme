@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     // Hasher le mot de passe
     const hashedPassword = await hash(password, 10)
 
-    // Créer l’utilisateur
+    // Créer l'utilisateur
     const user = await prisma.user.create({
       data: {
         name: `${firstName} ${lastName}`,
@@ -30,6 +30,12 @@ export async function POST(req: Request) {
         password: hashedPassword,
         role: userType.toUpperCase(), // "FREELANCE" | "ENTREPRISE"
         ...(userType === "entreprise" && { companyName: company || null }),
+        // Initialize arrays and set default values
+        skills: [],
+        portfolio: [],
+        notificationsNewMissions: true,
+        notificationsApplications: true,
+        notificationsMarketing: false,
       },
     })
 

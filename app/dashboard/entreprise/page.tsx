@@ -51,8 +51,8 @@ export default function EntrepriseDashboard() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="mb-6">
+    <div className="container mx-auto max-w-7xl py-8 px-4">
+      <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2">Tableau de bord Entreprise</h1>
         <p className="text-muted-foreground">Gérez vos missions et trouvez des talents</p>
       </div>
@@ -138,11 +138,13 @@ export default function EntrepriseDashboard() {
 
         {/* Onglets */}
         <Tabs defaultValue="missions" className="w-full">
-          <TabsList className="grid grid-cols-3 max-w-md mb-4">
-            <TabsTrigger value="missions">Mes missions</TabsTrigger>
-            <TabsTrigger value="applications">Candidatures</TabsTrigger>
-            <TabsTrigger value="invoices">Factures</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid grid-cols-3 max-w-md">
+              <TabsTrigger value="missions">Mes missions</TabsTrigger>
+              <TabsTrigger value="applications">Candidatures</TabsTrigger>
+              <TabsTrigger value="invoices">Factures</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* 📌 Mes missions */}
           <TabsContent value="missions" id="published-missions">

@@ -8,24 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import { ModeToggle } from "./mode-toggle"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useSession, signOut } from "next-auth/react"
 
 export default function MainNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = React.useState(false)
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false) // Simulation de login
-  const [userType, setUserType] = React.useState<"freelance" | "entreprise" | null>(null) // Simulation de type
+  const { data: session, status } = useSession()
 
-  // Démonstration: Vous souhaiterez remplacer ceci par une vérification d'authentification réelle
-  React.useEffect(() => {
-    // Simulation de détection d'authentification
-    const checkAuth = () => {
-      if (pathname.includes("/dashboard")) {
-        setIsLoggedIn(true)
-        setUserType(pathname.includes("freelance") ? "freelance" : "entreprise")
-      }
-    }
-    checkAuth()
-  }, [pathname])
+  const isLoggedIn = !!session
+  const userType = session?.user?.role?.toLowerCase() as "freelance" | "entreprise" | null
 
   const routes = [
     { href: "/", label: "Accueil", public: true },
@@ -41,7 +32,7 @@ export default function MainNav() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
         <div className="flex items-center">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="lg:hidden">
@@ -66,6 +57,32 @@ export default function MainNav() {
                     <Link href={route.href}>{route.label}</Link>
                   </Button>
                 ))}
+                {isLoggedIn ? (
+                  <>
+                    <Button asChild variant="ghost" className="justify-start" onClick={() => setIsOpen(false)}>
+                      <Link href="/profile">Mon profil</Link>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="justify-start"
+                      onClick={() => {
+                        setIsOpen(false)
+                        signOut({ callbackUrl: "/" })
+                      }}
+                    >
+                      Déconnexion
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild variant="ghost" className="justify-start" onClick={() => setIsOpen(false)}>
+                      <Link href="/auth/login">Connexion</Link>
+                    </Button>
+                    <Button asChild className="justify-start" onClick={() => setIsOpen(false)}>
+                      <Link href="/auth/signup">Inscription</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -90,9 +107,19 @@ export default function MainNav() {
         <div className="flex items-center gap-2">
           <ModeToggle />
           {isLoggedIn ? (
-            <Button asChild variant="ghost" size="sm" className="hidden lg:flex">
-              <Link href="/profile">Mon profil</Link>
-            </Button>
+            <>
+              <Button asChild variant="ghost" size="sm" className="hidden lg:flex">
+                <Link href="/profile">Mon profil</Link>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hidden lg:flex"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                Déconnexion
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm" className="hidden lg:flex">

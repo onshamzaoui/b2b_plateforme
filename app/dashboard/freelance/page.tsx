@@ -86,8 +86,8 @@ export default function FreelanceDashboard() {
   ]
 
   return (
-    <div className="container py-8">
-      <div className="mb-6">
+    <div className="container mx-auto max-w-7xl py-8 px-4">
+      <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2">Tableau de bord Freelance</h1>
         <p className="text-muted-foreground">Gérez vos missions et trouvez de nouvelles opportunités</p>
       </div>
@@ -148,11 +148,13 @@ export default function FreelanceDashboard() {
         </div>
 
         <Tabs defaultValue="available" className="w-full">
-          <TabsList className="grid grid-cols-3 max-w-md mb-4">
-            <TabsTrigger value="available">Missions disponibles</TabsTrigger>
-            <TabsTrigger value="applications">Mes candidatures</TabsTrigger>
-            <TabsTrigger value="invoices">Factures</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid grid-cols-3 max-w-md">
+              <TabsTrigger value="available">Missions disponibles</TabsTrigger>
+              <TabsTrigger value="applications">Mes candidatures</TabsTrigger>
+              <TabsTrigger value="invoices">Factures</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="available" id="available-missions">
             <div className="grid gap-4">
@@ -212,7 +214,7 @@ export default function FreelanceDashboard() {
 
           <TabsContent value="applications" id="applications">
             <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Mes candidatures</h2>
+              <h2 className="text-xl font-semibold text-center">Mes candidatures</h2>
 
               <div className="grid gap-4">
                 {appliedMissions.map((mission) => (
