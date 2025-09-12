@@ -71,7 +71,42 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
 
-    const body = await request.json()
+    // Check if request contains FormData (file upload) or JSON
+    const contentType = request.headers.get("content-type") || ""
+    let body: any = {}
+    
+    if (contentType.includes("multipart/form-data")) {
+      // Handle file upload
+      const formData = await request.formData()
+      const profileImageFile = formData.get("profileImage") as File
+      
+      if (profileImageFile) {
+        // For now, we'll store the file name/path
+        // In a real app, you'd upload to a cloud storage service
+        const fileName = `profile-${session.user.id}-${Date.now()}.${profileImageFile.name.split('.').pop()}`
+        const filePath = `/uploads/profiles/${fileName}`
+        
+        // Save file to public/uploads/profiles directory
+        const fs = require('fs')
+        const path = require('path')
+        
+        // Ensure directory exists
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profiles')
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true })
+        }
+        
+        // Save file
+        const fileBuffer = await profileImageFile.arrayBuffer()
+        const filePathFull = path.join(uploadDir, fileName)
+        fs.writeFileSync(filePathFull, Buffer.from(fileBuffer))
+        
+        body.profileImage = filePath
+      }
+    } else {
+      // Handle JSON data
+      body = await request.json()
+    }
     const {
       name,
       email,

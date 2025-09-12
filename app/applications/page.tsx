@@ -134,7 +134,7 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="container py-8 mx-auto w-screen">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl px-4 mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
@@ -319,8 +319,8 @@ export default function MyApplicationsPage() {
                             </div>
                           )}
 
-                          {/* Actions */}
-                          <div className="flex gap-2 pt-4 border-t">
+                          Actions
+                          {/* <div className="flex gap-2 pt-4 border-t">
                             <Button asChild variant="outline" size="sm">
                               <Link href={`/missions/${application.mission?.id}`}>
                                 <Eye className="mr-2 h-4 w-4" />
@@ -333,7 +333,7 @@ export default function MyApplicationsPage() {
                                 Détails candidature
                               </Link>
                             </Button>
-                          </div>
+                          </div> */}
                         </CardContent>
                       </Card>
                     )

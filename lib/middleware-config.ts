@@ -62,7 +62,19 @@ export const middlewareConfig = {
 // Helper function to check if a route requires a specific role
 export function requiresRole(pathname: string, role: string): boolean {
   const routes = middlewareConfig.protectedRoutes[role as keyof typeof middlewareConfig.protectedRoutes]
-  return routes ? routes.some(route => pathname.startsWith(route)) : false
+  if (!routes) return false
+  
+  return routes.some(route => {
+    // Handle dynamic routes with [id] parameters
+    if (route.includes('[id]')) {
+      // Convert route pattern to regex
+      const pattern = route.replace(/\[id\]/g, '[^/]+')
+      const regex = new RegExp(`^${pattern.replace(/\//g, '\\/')}`)
+      return regex.test(pathname)
+    }
+    // Handle static routes
+    return pathname.startsWith(route)
+  })
 }
 
 // Helper function to check if a route is public

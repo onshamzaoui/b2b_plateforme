@@ -62,6 +62,7 @@ export default function ProfilePage() {
   const [newPortfolioItem, setNewPortfolioItem] = useState("")
   const [cvs, setCvs] = useState<Array<{id: string, title: string, path: string, createdAt: string}>>([])
   const [isUploadingCV, setIsUploadingCV] = useState(false)
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false)
   
   // Form state for Select components
   const [availability, setAvailability] = useState("available")
@@ -81,6 +82,18 @@ export default function ProfilePage() {
     notificationsApplications: true,
     notificationsMarketing: false
   })
+
+  const loadCVs = async () => {
+    try {
+      const response = await fetch("/api/user/cv")
+      if (response.ok) {
+        const cvsData = await response.json()
+        setCvs(cvsData)
+      }
+    } catch (error) {
+      console.error("Erreur chargement CVs:", error)
+    }
+  }
 
   // Charger les données de l'utilisateur
   useEffect(() => {
@@ -107,8 +120,13 @@ export default function ProfilePage() {
             notificationsMarketing: userData.notificationsMarketing ?? false
           })
           
-          // Load CVs
-          await loadCVs()
+          // Load CVs - moved to separate try-catch to avoid initialization error
+          try {
+            await loadCVs()
+          } catch (cvError) {
+            console.error("Erreur chargement CVs:", cvError)
+            // Don't show error toast for CV loading failure as it's not critical
+          }
         } else {
           toast({
             title: "Erreur",
@@ -179,18 +197,6 @@ export default function ProfilePage() {
 
   const handlePortfolioRemove = (itemToRemove: string) => {
     setPortfolio(portfolio.filter((item) => item !== itemToRemove))
-  }
-
-  const loadCVs = async () => {
-    try {
-      const response = await fetch("/api/user/cv")
-      if (response.ok) {
-        const cvsData = await response.json()
-        setCvs(cvsData)
-      }
-    } catch (error) {
-      console.error("Erreur chargement CVs:", error)
-    }
   }
 
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,6 +270,69 @@ export default function ProfilePage() {
         description: "Erreur lors de la suppression du CV",
         variant: "destructive"
       })
+    }
+  }
+
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un fichier image valide",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validate file size (1MB max)
+    if (file.size > 1024 * 1024) {
+      toast({
+        title: "Erreur",
+        description: "L'image doit faire moins de 1MB",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsUploadingProfileImage(true)
+    try {
+      const formData = new FormData()
+      formData.append("profileImage", file)
+
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        body: formData,
+      })
+
+      if (response.ok) {
+        const updatedUser = await response.json()
+        setUser(updatedUser)
+        toast({
+          title: "✅ Photo de profil mise à jour",
+          description: "Votre photo de profil a été mise à jour avec succès.",
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Erreur",
+          description: error.error || "Erreur lors de la mise à jour de la photo",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Erreur upload photo:", error)
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la mise à jour de la photo",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUploadingProfileImage(false)
+      // Reset file input
+      e.target.value = ""
     }
   }
 
@@ -441,10 +510,34 @@ export default function ProfilePage() {
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="space-y-2">
-                      <Button type="button" variant="outline" className="w-full sm:w-auto">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Changer la photo
-                      </Button>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfileImageUpload}
+                          disabled={isUploadingProfileImage}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          id="profile-image-upload"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full sm:w-auto"
+                          disabled={isUploadingProfileImage}
+                        >
+                          {isUploadingProfileImage ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-600 mr-2"></div>
+                              Upload en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Changer la photo
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground">JPG, PNG ou GIF. 1MB max.</p>
                     </div>
                   </div>

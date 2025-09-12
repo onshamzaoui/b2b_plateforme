@@ -69,7 +69,7 @@ export default function FreelanceDashboard() {
     <div className="container mx-auto max-w-7xl py-8 px-4">
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2">Tableau de bord Freelance</h1>
-        <p className="text-muted-foreground">I will cook... Gérez vos missions et trouvez de nouvelles opportunités</p>
+        <p className="text-muted-foreground">Gérez vos missions et trouvez de nouvelles opportunités</p>
       </div>
 
       <div className="grid gap-6">

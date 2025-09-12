@@ -172,6 +172,168 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Interactive Testimonials Section */}
+      <section className="py-12 md:py-20 relative overflow-hidden">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <div className="inline-block rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-1 text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Témoignages
+            </div>
+            <h2 className="text-3xl font-bold mb-4">Témoignages d'utilisateurs</h2>
+            <p className="text-gray-500 dark:text-gray-400 md:text-lg max-w-2xl mx-auto">
+              Découvrez comment nos membres ont transformé leur carrière grâce à notre plateforme. Lisez leurs histoires de réussite.
+            </p>
+          </div>
+
+          {/* Background curved element */}
+          <div className="absolute w-screen inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 rounded-full opacity-60 transform rotate-12"></div>
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-gradient-to-br from-violet-100 to-violet-200 dark:from-violet-900/20 dark:to-violet-800/20 rounded-full opacity-60 transform -rotate-12"></div>
+            
+            {/* Snake/Curved Line Design */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1200 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="snakeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3"/>
+                  <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.4"/>
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.3"/>
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge> 
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              
+              {/* Main curved path */}
+              <path 
+                d="M 50 150 Q 200 50 400 120 T 800 100 T 1150 180" 
+                stroke="url(#snakeGradient)" 
+                strokeWidth="4" 
+                fill="none"
+                filter="url(#glow)"
+                className="animate-pulse"
+              />
+              
+              {/* Secondary curved path */}
+              <path 
+                d="M 100 300 Q 300 250 500 280 T 900 260 T 1100 320" 
+                stroke="url(#snakeGradient)" 
+                strokeWidth="3" 
+                fill="none"
+                filter="url(#glow)"
+                className="animate-pulse"
+                style={{animationDelay: '1s'}}
+              />
+              
+
+            </svg>
+          </div>
+
+          <div className="relative z-10">
+            {/* Profile Pictures Grid */}
+            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-4 mb-12 grid-items-center justify-items-center">
+              {/* Profile pictures - some will be clickable */}
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+                  alt="Utilisateur 1"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1064&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                  alt="Utilisateur 2"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+                  alt="Utilisateur 3"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
+                  alt="Utilisateur 4"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face"
+                  alt="Utilisateur 5"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <Image
+                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face"
+                  alt="Utilisateur 6"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              
+            </div>
+
+            {/* Featured Testimonial */}
+            <div className="max-w-4xl mx-auto">
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                {/* Featured Profile Image */}
+                <div className="relative">
+                  <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-8 border-white dark:border-gray-800 shadow-2xl">
+                    <Image
+                      src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face"
+                      alt="Emily Rodriguez"
+                      width={160}
+                      height={160}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  
+                </div>
+
+                {/* Testimonial Card */}
+                <div className="flex-1">
+                  <div className="bg-violet-800 dark:bg-violet-900 p-8 rounded-2xl shadow-xl">
+                    <div className="text-violet-200 mb-6">
+                      <svg className="w-8 h-8 text-violet-400 mb-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
+                      </svg>
+                      <blockquote className="text-lg md:text-xl leading-relaxed">
+                        "Rejoindre FreelanceConnect a été un tournant dans ma carrière. Les entreprises sont incroyablement professionnelles, et la plateforme m'a aidée à trouver la paix intérieure et à améliorer ma flexibilité professionnelle."
+                      </blockquote>
+                    </div>
+                    <div className="text-violet-200">
+                      <p className="font-semibold text-lg">Emily Rodriguez</p>
+                      <p className="text-violet-300">Développeuse Full Stack</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-violet-600 dark:bg-violet-800 text-white py-12 md:py-20 w-full max-w-screen mx-auto">
         <div className="container mx-auto px-4 md:px-6 text-center">
