@@ -11,8 +11,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "FreelanceConnect | Plateforme de mise en relation B2B",
-  description: "Plateforme B2B de mise en relation entre freelances et entreprises",
-    generator: 'v0.dev'
+  description: "Plateforme B2B de mise en relation entre freelances et entreprises"
 }
 
 export default function RootLayout({

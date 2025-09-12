@@ -20,10 +20,11 @@ export default function MainNav() {
 
   const routes = [
     { href: "/", label: "Accueil", public: true },
-{ href: "/missions", label: "Missions", public: true },
-    { href: "/tarifs", label: "Tarifs", public: true },
     { href: "/dashboard/freelance", label: "Tableau de bord", public: false, type: "freelance" },
     { href: "/dashboard/entreprise", label: "Tableau de bord", public: false, type: "entreprise" },
+    { href: "/missions", label: "Missions", public: true },
+    { href: "/tarifs", label: "Tarifs", public: true },
+    { href: "/applications", label: "Mes candidatures", public: false, type: "freelance" },
   ]
 
   const filteredRoutes = routes.filter(

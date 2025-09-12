@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Upload, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 
 interface ApplyPageProps {
   params: {
@@ -23,33 +25,164 @@ interface ApplyPageProps {
 export default function ApplyPage({ params }: ApplyPageProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const { data: session, status } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [mission, setMission] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [userCvs, setUserCvs] = useState<any[]>([])
+  const [selectedCvId, setSelectedCvId] = useState<string>("")
+  const [hasApplied, setHasApplied] = useState(false)
   const missionId = params.id
 
-  // Données fictives de la mission
-  const mission = {
-    id: missionId,
-    title: "Développement d'une application web React",
-    company: "TechSolutions SA",
-    duration: "3 mois",
-    location: "Remote",
-    pricing: "550€ - 600€ / jour",
-    skills: ["React", "TypeScript", "API REST", "Redux"],
-  }
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [status, router])
+
+  // Fetch mission details
+  useEffect(() => {
+    const fetchMission = async () => {
+      try {
+        const response = await fetch(`/api/missions/${missionId}`)
+        if (response.ok) {
+          const missionData = await response.json()
+          setMission(missionData)
+        } else {
+          toast({
+            title: "Erreur",
+            description: "Mission non trouvée",
+            variant: "destructive",
+          })
+          router.push("/missions")
+        }
+      } catch (error) {
+        console.error("Error fetching mission:", error)
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement de la mission",
+          variant: "destructive",
+        })
+      }
+    }
+
+    if (missionId) {
+      fetchMission()
+    }
+  }, [missionId, router, toast])
+
+  // Fetch user profile and CVs
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (status === "authenticated") {
+        try {
+          const [profileResponse, cvsResponse, dashboardResponse] = await Promise.all([
+            fetch("/api/user/profile"),
+            fetch("/api/user/cv"),
+            fetch("/api/dashboard/freelance")
+          ])
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            setUserProfile(profileData)
+          }
+
+          if (cvsResponse.ok) {
+            const cvsData = await cvsResponse.json()
+            setUserCvs(cvsData)
+          }
+
+          if (dashboardResponse.ok) {
+            const dashboardData = await dashboardResponse.json()
+            const applications = dashboardData.applications || []
+            
+            // Check if user has already applied to this mission
+            const applied = applications.some((app: any) => app.missionId === missionId)
+            setHasApplied(applied)
+            
+            if (applied) {
+              toast({
+                title: "Candidature déjà envoyée",
+                description: "Vous avez déjà postulé à cette mission.",
+                variant: "default",
+              })
+              router.push(`/missions/${missionId}`)
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchUserData()
+  }, [status, missionId, router, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulation d'envoi de candidature
-    setTimeout(() => {
-      setIsSubmitting(false)
-      toast({
-        title: "Candidature envoyée !",
-        description: "Votre candidature a été transmise à l'entreprise. Vous recevrez une réponse sous 48h.",
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+
+    const applicationData = {
+      dailyRate: formData.get("dailyRate"),
+      availability: formData.get("availability"),
+      motivation: formData.get("motivation"),
+      experience: formData.get("experience"),
+      portfolio: formData.get("portfolioLinks") ? 
+        (formData.get("portfolioLinks") as string).split(',').map(link => link.trim()).filter(link => link) : [],
+      skills: userProfile?.skills || [],
+      questions: formData.get("questions"),
+      selectedCvId: selectedCvId
+    }
+
+    try {
+      const response = await fetch(`/api/missions/${missionId}/applications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(applicationData),
       })
-      router.push("/dashboard/freelance")
-    }, 2000)
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Candidature envoyée !",
+          description: "Votre candidature a été transmise à l'entreprise. Vous recevrez une réponse sous 48h.",
+        })
+        router.push("/dashboard/freelance")
+      } else {
+        toast({
+          title: "Erreur",
+          description: result.error || "Erreur lors de l'envoi de la candidature",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error submitting application:", error)
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'envoi de la candidature",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading || status === "loading") {
+    return <div className="container py-8 text-center">Chargement...</div>
+  }
+
+  if (!mission) {
+    return <div className="container py-8 text-center">Mission non trouvée</div>
   }
 
   return (
@@ -69,31 +202,31 @@ export default function ApplyPage({ params }: ApplyPageProps) {
           <Card>
             <CardHeader>
               <CardTitle>Candidature pour : {mission.title}</CardTitle>
-              <CardDescription>{mission.company}</CardDescription>
+              <CardDescription>{mission.company?.companyName || mission.company?.name}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
                   <span className="text-sm text-muted-foreground">Durée</span>
-                  <p className="font-medium">{mission.duration}</p>
+                  <p className="font-medium">{mission.duration || "Non spécifiée"}</p>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">Lieu</span>
-                  <p className="font-medium">{mission.location}</p>
+                  <p className="font-medium">{mission.location || "Non spécifié"}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">Tarif</span>
-                  <p className="font-medium">{mission.pricing}</p>
+                  <span className="text-sm text-muted-foreground">Budget</span>
+                  <p className="font-medium">{mission.pricing || `${mission.budget}€`}</p>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">Compétences</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {mission.skills.slice(0, 2).map((skill) => (
+                    {mission.skills?.slice(0, 2).map((skill: string) => (
                       <Badge key={skill} variant="secondary" className="text-xs">
                         {skill}
                       </Badge>
                     ))}
-                    {mission.skills.length > 2 && (
+                    {mission.skills?.length > 2 && (
                       <Badge variant="outline" className="text-xs">
                         +{mission.skills.length - 2}
                       </Badge>
@@ -117,12 +250,28 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="dailyRate">Votre taux journalier (€)</Label>
-                    <Input id="dailyRate" type="number" placeholder="550" min="0" required className="w-full" />
+                    <Input 
+                      id="dailyRate" 
+                      name="dailyRate"
+                      type="number" 
+                      placeholder="550" 
+                      defaultValue={userProfile?.dailyRate || ""}
+                      min="0" 
+                      required 
+                      className="w-full" 
+                    />
                     <p className="text-xs text-muted-foreground">Indiquez votre tarif pour cette mission</p>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="availability">Disponibilité</Label>
-                    <Input id="availability" placeholder="Immédiatement / À partir du..." required className="w-full" />
+                    <Input 
+                      id="availability" 
+                      name="availability"
+                      placeholder="Immédiatement / À partir du..." 
+                      defaultValue={userProfile?.availability || ""}
+                      required 
+                      className="w-full" 
+                    />
                     <p className="text-xs text-muted-foreground">Quand pouvez-vous commencer ?</p>
                   </div>
                 </div>
@@ -131,6 +280,7 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                   <Label htmlFor="motivation">Lettre de motivation</Label>
                   <Textarea
                     id="motivation"
+                    name="motivation"
                     placeholder="Expliquez pourquoi vous êtes intéressé par cette mission et en quoi votre profil correspond aux besoins..."
                     className="min-h-32"
                     required
@@ -144,7 +294,9 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                   <Label htmlFor="experience">Expérience pertinente</Label>
                   <Textarea
                     id="experience"
+                    name="experience"
                     placeholder="Décrivez vos projets similaires, vos réalisations et votre expertise dans les technologies demandées..."
+                    defaultValue={userProfile?.experience || ""}
                     className="min-h-24"
                     required
                   />
@@ -162,13 +314,37 @@ export default function ApplyPage({ params }: ApplyPageProps) {
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="cv">CV (obligatoire)</Label>
-                  <div className="flex items-center gap-4">
-                    <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Télécharger mon CV
-                    </Button>
-                    <span className="text-sm text-muted-foreground">PDF, DOC, DOCX - 5MB max</span>
-                  </div>
+                  {userCvs.length > 0 ? (
+                    <div className="space-y-2">
+                      <Select value={selectedCvId} onValueChange={setSelectedCvId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez un CV" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userCvs.map((cv) => (
+                            <SelectItem key={cv.id} value={cv.id}>
+                              {cv.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Choisissez parmi vos CVs uploadés
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Aucun CV uploadé. Veuillez d'abord uploader un CV depuis votre profil.
+                      </p>
+                      <Button type="button" variant="outline" asChild>
+                        <Link href="/profile">
+                          <Upload className="mr-2 h-4 w-4" />
+                          Uploader un CV
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-2">
@@ -186,7 +362,9 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                   <Label htmlFor="portfolioLinks">Liens vers vos réalisations</Label>
                   <Input
                     id="portfolioLinks"
+                    name="portfolioLinks"
                     placeholder="https://github.com/votre-profil, https://votre-portfolio.com"
+                    defaultValue={userProfile?.portfolio?.join(', ') || ""}
                     className="w-full"
                   />
                   <p className="text-xs text-muted-foreground">
@@ -205,6 +383,7 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                   <Label htmlFor="questions">Questions ou commentaires</Label>
                   <Textarea
                     id="questions"
+                    name="questions"
                     placeholder="Avez-vous des questions sur la mission ? Des points à clarifier ?"
                     className="min-h-20"
                   />
