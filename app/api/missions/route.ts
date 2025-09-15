@@ -5,18 +5,45 @@ import { authOptions } from "../auth/[...nextauth]/route"  // adapte bien le che
 
 const prisma = new PrismaClient()
 
-// GET -> liste toutes les missions
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions)
+
+    // Si c'est une entreprise → afficher seulement SES missions
+    if (session && session.user.role === "ENTREPRISE") {
+      const missions = await prisma.mission.findMany({
+        where: { companyId: session.user.id },
+        orderBy: { createdAt: "desc" },
+      })
+      return NextResponse.json(missions)
+    }
+
+    // Si c'est un freelance → afficher seulement les missions publiées
     const missions = await prisma.mission.findMany({
-      include: { company: true }, // optionnel
+      where: { status: "PUBLISHED" },
+      include: { company: true },
+      orderBy: { createdAt: "desc" },
     })
+
     return NextResponse.json(missions)
   } catch (error) {
     console.error("❌ Erreur API GET missions:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
+
+// GET -> liste toutes les missions
+// export async function GET() {
+//   try {
+//     const missions = await prisma.mission.findMany({
+//       include: { company: true }, // optionnel
+//     })
+//     return NextResponse.json(missions)
+//   } catch (error) {
+//     console.error("❌ Erreur API GET missions:", error)
+//     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+//   }
+// }
 
 // POST -> crée une nouvelle mission
 export async function POST(request: Request) {

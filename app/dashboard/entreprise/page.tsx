@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,42 +10,41 @@ import { BriefcaseBusiness, Eye, FileText, PlusCircle, Users } from "lucide-reac
 import Link from "next/link"
 
 export default function EntrepriseDashboard() {
-  const [publishedMissions, setPublishedMissions] = useState<any[]>([])
+  const { data: session } = useSession()
+  const [missions, setMissions] = useState<any[]>([])
+  const [applications, setApplications] = useState<any[]>([])
+  const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 🔹 Charger les missions depuis l'API
+  // 🔹 Charger les missions / candidatures / factures
   useEffect(() => {
-    fetch("/api/missions")
-      .then((res) => res.json())
-      .then((data) => setPublishedMissions(data))
-      .catch((err) => console.error("Erreur chargement missions :", err))
-      .finally(() => setLoading(false))
-  }, [])
+    if (!session?.user?.id) return
 
-  // 🔹 Candidatures et factures (placeholder pour l’instant)
-  const applications = [
-    {
-      id: 101,
-      missionId: 1,
-      missionTitle: "Développement application web React",
-      freelanceName: "Sophie Martin",
-      appliedAt: "05/04/2024",
-      status: "Nouveau",
-      matchRate: 95,
-      dailyRate: "550€",
-    },
-  ]
+    const fetchData = async () => {
+      try {
+        // Récupérer les missions de l’entreprise connectée
+        const resMissions = await fetch(`/api/missions?entrepriseId=${session.user.id}`)
+        const missionsData = await resMissions.json()
+        setMissions(missionsData)
 
-  const invoices = [
-    {
-      id: 2001,
-      missionTitle: "Refonte site corporate",
-      freelanceName: "Marie Dupont",
-      amount: "9600€",
-      issueDate: "31/03/2024",
-      status: "En attente",
-    },
-  ]
+        // Récupérer candidatures
+        const resApps = await fetch(`/api/applications?entrepriseId=${session.user.id}`)
+        const appsData = await resApps.json()
+        setApplications(appsData)
+
+        // Récupérer factures
+        const resInvoices = await fetch(`/api/invoices?entrepriseId=${session.user.id}`)
+        const invoicesData = await resInvoices.json()
+        setInvoices(invoicesData)
+      } catch (err) {
+        console.error("Erreur chargement dashboard :", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [session?.user?.id])
 
   if (loading) {
     return <div className="p-6">Chargement...</div>
@@ -54,7 +54,7 @@ export default function EntrepriseDashboard() {
     <div className="container mx-auto max-w-7xl py-8 px-4">
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold mb-2">Tableau de bord Entreprise</h1>
-        <p className="text-muted-foreground">Gérez vos missions et trouvez des talents</p>
+        <p className="text-muted-foreground">Gérez vos missions et suivez vos collaborations</p>
       </div>
 
       {/* Statistiques */}
@@ -66,16 +66,14 @@ export default function EntrepriseDashboard() {
               <CardTitle className="text-lg">Missions publiées</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">
-                {publishedMissions.length}
-              </div>
+              <div className="text-3xl font-bold text-violet-600">{missions.length}</div>
               <p className="text-sm text-muted-foreground">
-                {publishedMissions.filter((m) => m.status === "PUBLISHED").length} missions actives
+                {missions.filter((m) => m.status === "PUBLISHED").length} missions actives
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild size="sm" variant="ghost" className="w-full">
-                <Link href="#published-missions">
+                <Link href="/missions">
                   <BriefcaseBusiness className="mr-2 h-4 w-4" />
                   Voir les missions
                 </Link>
@@ -89,9 +87,9 @@ export default function EntrepriseDashboard() {
               <CardTitle className="text-lg">Candidatures reçues</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{applications.length}</div>
+              <div className="text-3xl font-bold text-violet-600">{applications.length}</div>
               <p className="text-sm text-muted-foreground">
-                {applications.filter((a) => a.status === "Nouveau").length} nouvelles candidatures
+                {applications.filter((a) => a.status === "PENDING").length} nouvelles candidatures
               </p>
             </CardContent>
             <CardFooter>
@@ -110,9 +108,9 @@ export default function EntrepriseDashboard() {
               <CardTitle className="text-lg">Facturation</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{invoices.length}</div>
+              <div className="text-3xl font-bold text-violet-600">{invoices.length}</div>
               <p className="text-sm text-muted-foreground">
-                {invoices.filter((i) => i.status === "En attente").length} factures en attente
+                {invoices.filter((i) => i.status === "PENDING").length} factures en attente
               </p>
             </CardContent>
             <CardFooter>
@@ -126,17 +124,7 @@ export default function EntrepriseDashboard() {
           </Card>
         </div>
 
-        {/* Bouton publier mission */}
-        <div className="flex justify-end mb-2">
-          <Button asChild className="bg-violet-600 hover:bg-violet-700">
-            <Link href="/missions/create">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Publier une mission
-            </Link>
-          </Button>
-        </div>
-
-        {/* Onglets */}
+        {/* 📌 Onglets */}
         <Tabs defaultValue="missions" className="w-full">
           <div className="flex justify-center mb-6">
             <TabsList className="grid grid-cols-3 max-w-md">
@@ -146,138 +134,101 @@ export default function EntrepriseDashboard() {
             </TabsList>
           </div>
 
-          {/* 📌 Mes missions */}
-          <TabsContent value="missions" id="published-missions">
-            <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Missions publiées</h2>
-              <div className="grid gap-4">
-                {publishedMissions.length === 0 ? (
-                  <p>Aucune mission publiée pour l’instant.</p>
-                ) : (
-                  publishedMissions.map((mission) => (
-                    <Card key={mission.id}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle>{mission.title}</CardTitle>
-                            <CardDescription>
-                              Publiée le {new Date(mission.createdAt).toLocaleDateString("fr-FR")}
-                            </CardDescription>
-                          </div>
-                          <Badge
-                            variant={mission.status === "PUBLISHED" ? "default" : "secondary"}
-                            className={mission.status === "PUBLISHED" ? "bg-green-600" : ""}
-                          >
-                            {mission.status}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">{mission.description}</p>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <span className="font-medium">Budget :</span> {mission.budget} €
-                          </div>
-                        </div>
-                      </CardContent>
-                   <CardFooter className="flex justify-between">
-  <Button asChild variant="outline">
-    <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
-  </Button>
-  <Button asChild className="bg-violet-600 hover:bg-violet-700">
-<Link href={`/missions/${mission.id}/applications`}>
-      Voir les applications
-    </Link>
-  </Button>
-</CardFooter>
+   {/* Missions */}
+  <TabsContent value="missions" id="missions">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-xl font-semibold">Missions publiées</h2>
+      <Button asChild className="bg-violet-600 hover:bg-violet-700">
+        <Link href="/missions/create">
+          <PlusCircle className="mr-2 h-4 w-4" /> Publier une mission
+        </Link>
+      </Button>
+    </div>
 
-                    </Card>
-                  ))
-                )}
+    {missions.length === 0 ? (
+      <p>Aucune mission publiée.</p>
+    ) : (
+      missions.map((mission) => (
+        <Card key={mission.id}>
+          <CardHeader>
+            <div className="flex justify-between">
+              <div>
+                <CardTitle>{mission.title}</CardTitle>
+                <CardDescription>
+                  Publiée le {new Date(mission.createdAt).toLocaleDateString("fr-FR")}
+                </CardDescription>
               </div>
+              <Badge>{mission.status}</Badge>
             </div>
-          </TabsContent>
-
-          {/* 📌 Candidatures */}
+          </CardHeader>
+          <CardContent>
+            <p>{mission.description}</p>
+            <p className="text-sm">Budget : {mission.budget} €</p>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button asChild variant="outline">
+              <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
+            </Button>
+            <Button asChild className="bg-violet-600 hover:bg-violet-700">
+              <Link href={`/missions/${mission.id}/applications`}>Voir candidatures</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      ))
+    )}
+  </TabsContent>
+          {/* Candidatures */}
           <TabsContent value="applications" id="applications">
-            <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Candidatures reçues</h2>
-              {applications.length === 0 ? (
-                <p>Aucune candidature reçue pour l’instant.</p>
-              ) : (
-                applications.map((app) => (
-                  <Card key={app.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{app.freelanceName}</CardTitle>
-                          <CardDescription>Pour : {app.missionTitle}</CardDescription>
-                        </div>
-                        <Badge variant={app.status === "Nouveau" ? "default" : "secondary"}>{app.status}</Badge>
+            {applications.length === 0 ? (
+              <p>Aucune candidature reçue.</p>
+            ) : (
+              applications.map((app) => (
+                <Card key={app.id}>
+                  <CardHeader>
+                    <div className="flex justify-between">
+                      <div>
+                        <CardTitle>{app.user.name}</CardTitle>
+                        <CardDescription>Mission : {app.mission.title}</CardDescription>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">Candidature le {app.appliedAt}</p>
-                      <p className="text-sm">Taux journalier : {app.dailyRate}</p>
-                      <p className="text-sm">Compatibilité : {app.matchRate}%</p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline">
-                        <Link href={`/freelancers/${app.id}`}>Profil du freelance</Link>
-                      </Button>
-                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                        <Link href={`/applications/${app.id}`}>Voir candidature</Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
+                      <Badge>{app.status}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p>Candidature le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
 
-          {/* 📌 Factures */}
+          {/* Factures */}
           <TabsContent value="invoices" id="invoices">
-            <div className="grid gap-4">
-              <h2 className="text-xl font-semibold">Factures</h2>
-              {invoices.length === 0 ? (
-                <p>Aucune facture pour l’instant.</p>
-              ) : (
-                invoices.map((invoice) => (
-                  <Card key={invoice.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>Facture #{invoice.id}</CardTitle>
-                          <CardDescription>
-                            {invoice.missionTitle} - {invoice.freelanceName}
-                          </CardDescription>
-                        </div>
-                        <Badge>{invoice.status}</Badge>
+            {invoices.length === 0 ? (
+              <p>Aucune facture.</p>
+            ) : (
+              invoices.map((inv) => (
+                <Card key={inv.id}>
+                  <CardHeader>
+                    <div className="flex justify-between">
+                      <div>
+                        <CardTitle>Facture #{inv.id}</CardTitle>
+                        <CardDescription>{inv.user.name}</CardDescription>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">Montant : {invoice.amount}</p>
-                      <p className="text-sm">Émise le : {invoice.issueDate}</p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline">
-                        <Link href={`/invoices/${invoice.id}`}>
-                          <Eye className="mr-2 h-4 w-4" /> Détails
-                        </Link>
-                      </Button>
-                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                        <Link href={`/invoices/${invoice.id}/pay`}>
-                          {invoice.status === "En attente" ? "Payer" : "Télécharger"}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
+                      <Badge>{inv.status}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p>Montant : {inv.amount} €</p>
+                    <p>Émise le : {new Date(inv.issuedAt).toLocaleDateString("fr-FR")}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
+        
       </div>
     </div>
+    
   )
 }
