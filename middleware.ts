@@ -15,6 +15,9 @@ export default withAuth(
 
     // Check if the current path requires authentication
     const requiresAuth = !isPublicRoute(pathname)
+if (pathname.startsWith("/profile")) {
+  return NextResponse.next()
+}
 
     // If route requires authentication but user is not authenticated
     if (requiresAuth && !token) {
