@@ -35,34 +35,23 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true)
 
 
-  // 🔹 Charger les candidatures depuis l’API (à brancher après avec Prisma)
+  // 🔹 Charger les candidatures dynamiquement
   useEffect(() => {
-    // Temporaire : données fictives
-    setApplications([
-      {
-        id: "1",
-        freelancer: {
-          name: "Sophie Martin",
-          avatar: "/placeholder.svg?height=50&width=50",
-          profession: "Développeuse Full Stack React",
-          location: "Lyon, France",
-          experience: "5 ans",
-          rating: 4.9,
-          completedProjects: 23,
-        },
-        appliedAt: "05/04/2024",
-        status: "Nouveau",
-        dailyRate: "550€",
-        availability: "Immédiatement",
-        matchScore: 95,
-        motivation: "Je suis très intéressée par cette mission car elle correspond parfaitement à mon expertise...",
-        experience: "5 ans d'expérience en développement React...",
-        portfolioLinks: ["https://github.com/sophie-martin"],
-        skills: ["React", "TypeScript", "Redux", "Node.js", "AWS"],
-      },
-    ])
-    setLoading(false)
-  }, [])
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch(`/api/missions/${missionId}/applications`)
+        const data = await res.json()
+        setApplications(data)
+      } catch (err) {
+        console.error("Erreur chargement candidatures:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (missionId) fetchApplications()
+  }, [missionId])
+
 
 const handleUpdateStatus = async (applicationId: string, newStatus: string) => {
   try {

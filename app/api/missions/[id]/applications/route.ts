@@ -153,19 +153,7 @@ export async function GET(
     const applications = await prisma.application.findMany({
       where: { missionId: params.id },
       include: {
-        freelancer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            skills: true,
-            dailyRate: true,
-            experience: true,
-            location: true,
-            linkedin: true,
-            github: true
-          }
-        }
+        freelancer: true,
       },
       orderBy: { appliedAt: 'desc' }
     })

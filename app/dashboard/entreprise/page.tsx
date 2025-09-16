@@ -89,7 +89,7 @@ export default function EntrepriseDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-violet-600">{applications.length}</div>
               <p className="text-sm text-muted-foreground">
-                {applications.filter((a) => a.status === "PENDING").length} nouvelles candidatures
+                {applications.filter((app) => app.status === "PENDING").length} candidatures en attente
               </p>
             </CardContent>
             <CardFooter>
