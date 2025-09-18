@@ -8,7 +8,7 @@ const prisma = new PrismaClient()
 // POST /api/missions/[missionId]/applications - Create new application
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -17,6 +17,7 @@ export async function POST(
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const {
       dailyRate,
@@ -38,7 +39,7 @@ export async function POST(
 
     // Check if mission exists
     const mission = await prisma.mission.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!mission) {
@@ -48,7 +49,7 @@ export async function POST(
     // Check if user already applied to this mission
     const existingApplication = await prisma.application.findFirst({
       where: {
-        missionId: params.id,
+        missionId: id,
         freelancerId: session.user.id
       }
     })
@@ -75,7 +76,7 @@ export async function POST(
     // Create the application
     const application = await prisma.application.create({
       data: {
-        missionId: params.id,
+        missionId: id,
         freelancerId: session.user.id,
         dailyRate: parseInt(dailyRate),
         availability: availability || null,
@@ -126,7 +127,7 @@ export async function POST(
 // GET /api/missions/[missionId]/applications - Get applications for a mission
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -135,9 +136,11 @@ export async function GET(
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Check if mission exists and user is the company owner
     const mission = await prisma.mission.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { company: true }
     })
 
@@ -151,7 +154,7 @@ export async function GET(
 
     // Get all applications for this mission
     const applications = await prisma.application.findMany({
-      where: { missionId: params.id },
+      where: { missionId: id },
       include: {
         freelancer: {
           select: {
@@ -163,7 +166,9 @@ export async function GET(
             experience: true,
             location: true,
             linkedin: true,
-            github: true
+            github: true,
+            profileImage: true,
+            profession: true
           }
         }
       },

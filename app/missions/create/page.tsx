@@ -26,15 +26,18 @@ export default function CreateMissionPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [requirements, setRequirements] = useState("")
+  const [projectContext, setProjectContext] = useState("")
 
   // Infos conditions
-  const [location, setLocation] = useState("remote")
-  const [city, setCity] = useState("")
-  const [duration, setDuration] = useState("3months")
+  const [location, setLocation] = useState("")
+  const [duration, setDuration] = useState("")
   const [date, setDate] = useState<Date>()
-  const [workload, setWorkload] = useState("fulltime")
-  const [budgetMin, setBudgetMin] = useState<number>(0)
-  const [budgetMax, setBudgetMax] = useState<number>(0)
+  const [budget, setBudget] = useState<number>(0)
+  const [pricing, setPricing] = useState("")
+
+  // Informations entreprise
+  const [companyDescription, setCompanyDescription] = useState("")
+  const [companyLogo, setCompanyLogo] = useState("")
 
   // Skills
   const [skills, setSkills] = useState<string[]>([])
@@ -63,22 +66,23 @@ export default function CreateMissionPage() {
           title,
           description,
           requirements,
+          projectContext,
           location,
-          city,
           duration,
           startDate: date ? date.toISOString() : null,
-          workload,
-          budgetMin,
-          budgetMax,
+          budget: budget,
+          pricing,
           skills,
+          companyDescription,
+          companyLogo,
         }),
       })
-if (!res.ok) {
-  const errorText = await res.text()
-  console.error("Réponse API:", res.status, errorText)
-  throw new Error("Erreur lors de la création")
-}
- 
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error("Réponse API:", res.status, errorText)
+        throw new Error("Erreur lors de la création")
+      }
+
 
       toast({
         title: "Mission publiée",
@@ -99,8 +103,8 @@ if (!res.ok) {
   }
 
   return (
-    <div className="container py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto w-screen py-8">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Publier une mission</h1>
           <p className="text-muted-foreground">
@@ -148,6 +152,17 @@ if (!res.ok) {
                   placeholder="Listez les compétences techniques, l'expérience requise, et autres prérequis..."
                   className="min-h-24"
                   required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="projectContext">Contexte du projet</Label>
+                <Textarea
+                  id="projectContext"
+                  value={projectContext}
+                  onChange={(e) => setProjectContext(e.target.value)}
+                  placeholder="Décrivez le contexte, les objectifs et l'environnement de travail..."
+                  className="min-h-24"
                 />
               </div>
 
@@ -203,41 +218,27 @@ if (!res.ok) {
               <CardDescription>Précisez les modalités pratiques de la mission</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="location">Lieu de travail</Label>
-                  <Select value={location} onValueChange={setLocation}>
-                    <SelectTrigger id="location">
-                      <SelectValue placeholder="Sélectionnez un type de travail" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="remote">Télétravail (100% remote)</SelectItem>
-                      <SelectItem value="onsite">Sur site</SelectItem>
-                      <SelectItem value="hybrid">Hybride</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="city">Ville</Label>
-                  <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Paris" />
+                  <Label htmlFor="location">Lieu</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Ex: Paris, Remote, Lyon..."
+                  />
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="duration">Durée estimée</Label>
-                  <Select value={duration} onValueChange={setDuration}>
-                    <SelectTrigger id="duration">
-                      <SelectValue placeholder="Sélectionnez une durée" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1month">1 mois</SelectItem>
-                      <SelectItem value="3months">3 mois</SelectItem>
-                      <SelectItem value="6months">6 mois</SelectItem>
-                      <SelectItem value="longterm">Long terme (6+ mois)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="duration"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    placeholder="Ex: 3 mois, 6 mois, Long terme..."
+                  />
                 </div>
 
                 <div className="grid gap-2">
@@ -261,40 +262,56 @@ if (!res.ok) {
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="workload">Charge de travail</Label>
-                  <Select value={workload} onValueChange={setWorkload}>
-                    <SelectTrigger id="workload">
-                      <SelectValue placeholder="Sélectionnez une charge" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fulltime">Temps plein (5j/semaine)</SelectItem>
-                      <SelectItem value="parttime">Temps partiel (2-3j/semaine)</SelectItem>
-                      <SelectItem value="punctual">Ponctuel</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="budget">Budget (€)</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    placeholder="Budget total du projet"
+                    min="0"
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                  />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="budget-range">Budget / TJM</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="budget-min"
-                      type="number"
-                      placeholder="Min €"
-                      min="0"
-                      value={budgetMin}
-                      onChange={(e) => setBudgetMin(Number(e.target.value))}
-                    />
-                    <Input
-                      id="budget-max"
-                      type="number"
-                      placeholder="Max €"
-                      min="0"
-                      value={budgetMax}
-                      onChange={(e) => setBudgetMax(Number(e.target.value))}
-                    />
-                  </div>
+                  <Label htmlFor="pricing">Tarification</Label>
+                  <Input
+                    id="pricing"
+                    value={pricing}
+                    onChange={(e) => setPricing(e.target.value)}
+                    placeholder="Ex: Forfait, Journalier, Mensuel..."
+                  />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* --- Informations entreprise --- */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations entreprise</CardTitle>
+              <CardDescription>Informations sur votre entreprise pour cette mission</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="companyDescription">Description de l'entreprise</Label>
+                <Textarea
+                  id="companyDescription"
+                  value={companyDescription}
+                  onChange={(e) => setCompanyDescription(e.target.value)}
+                  className="min-h-24"
+                  placeholder="Présentez votre entreprise, sa culture, ses valeurs..."
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="companyLogo">Logo de l'entreprise (URL)</Label>
+                <Input
+                  id="companyLogo"
+                  value={companyLogo}
+                  onChange={(e) => setCompanyLogo(e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
               </div>
             </CardContent>
           </Card>

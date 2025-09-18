@@ -71,7 +71,7 @@ export async function GET() {
     // Récupérer les factures de l'utilisateur
     const invoices = await prisma.invoice.findMany({
       where: {
-        userId: session.user.id
+        freelancerId: session.user.id
       },
       orderBy: {
         issuedAt: 'desc'

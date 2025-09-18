@@ -5,12 +5,40 @@ import { authOptions } from "../auth/[...nextauth]/route"  // adapte bien le che
 
 const prisma = new PrismaClient()
 
-// GET -> liste toutes les missions
+// GET -> liste les missions selon le rôle de l'utilisateur
 export async function GET() {
   try {
-    const missions = await prisma.mission.findMany({
-      include: { company: true }, // optionnel
-    })
+    // 🔹 Vérifier la session utilisateur
+    const session = await getServerSession(authOptions)
+
+    if (!session) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    }
+
+    let missions
+
+    if (session.user.role === "ENTREPRISE") {
+      // Les entreprises voient seulement leurs propres missions
+      missions = await prisma.mission.findMany({
+        where: { companyId: session.user.id },
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    } else if (session.user.role === "FREELANCE") {
+      // Les freelances voient toutes les missions publiées
+      missions = await prisma.mission.findMany({
+        where: { status: "PUBLISHED" },
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    } else {
+      // Admin ou autres rôles voient toutes les missions
+      missions = await prisma.mission.findMany({
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+
     return NextResponse.json(missions)
   } catch (error) {
     console.error("❌ Erreur API GET missions:", error)
@@ -39,9 +67,18 @@ export async function POST(request: Request) {
       data: {
         title: body.title,
         description: body.description,
-        budget: body.budgetMax ?? 0,
+        requirements: body.requirements,
+        projectContext: body.projectContext,
+        location: body.location,
+        duration: body.duration,
+        startDate: body.startDate ? new Date(body.startDate).toISOString() : null,
+        budget: body.budget ?? 0,
+        pricing: body.pricing,
+        skills: body.skills || [],
         status: "PUBLISHED",
-        companyId: session.user.id, // ✅ on prend l’id de l’utilisateur connecté
+        companyId: session.user.id, // ✅ on prend l'id de l'utilisateur connecté
+        companyDescription: body.companyDescription,
+        companyLogo: body.companyLogo,
       },
     })
 

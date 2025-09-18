@@ -49,6 +49,20 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
         setSkills(data.skills || [])
         if (data.startDate) setDate(new Date(data.startDate))
         setHasApplications((data.applicationsCount || 0) > 0)
+        
+        // Initialize all fields with default values if they don't exist
+        setMission((prev: any) => ({
+          ...prev,
+          requirements: prev.requirements || "",
+          projectContext: prev.projectContext || "",
+          location: prev.location || "",
+          duration: prev.duration || "",
+          budget: prev.budget || 0,
+          pricing: prev.pricing || "",
+          companyDescription: prev.companyDescription || "",
+          companyLogo: prev.companyLogo || "",
+          status: prev.status || "PUBLISHED"
+        }))
       } catch (err) {
         console.error(err)
         toast({ title: "Erreur", description: "Impossible de charger la mission ❌", variant: "destructive" })
@@ -78,7 +92,15 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
       const res = await fetch(`/api/missions/${missionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...mission, skills, startDate: date ? date.toISOString() : null }),
+        body: JSON.stringify({ 
+          ...mission, 
+          skills, 
+          startDate: mission.startDate,
+          projectContext: mission.projectContext,
+          companyDescription: mission.companyDescription,
+          companyLogo: mission.companyLogo,
+          pricing: mission.pricing
+        }),
       })
       if (!res.ok) throw new Error("Erreur mise à jour")
       toast({ title: "Succès", description: "Mission mise à jour avec succès ✅" })
@@ -112,8 +134,8 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
   if (!mission) return <div className="p-6">Mission introuvable ❌</div>
 
   return (
-    <div className="container py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto w-screen py-8">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center space-x-4 mb-6">
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard/entreprise">
@@ -169,9 +191,20 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
                 <Label htmlFor="requirements">Prérequis</Label>
                 <Textarea
                   id="requirements"
-                  value={mission.requirements}
+                  value={mission.requirements || ""}
                   onChange={(e) => setMission({ ...mission, requirements: e.target.value })}
                   className="min-h-24"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="projectContext">Contexte du projet</Label>
+                <Textarea
+                  id="projectContext"
+                  value={mission.projectContext || ""}
+                  onChange={(e) => setMission({ ...mission, projectContext: e.target.value })}
+                  className="min-h-24"
+                  placeholder="Décrivez le contexte, les objectifs et l'environnement de travail..."
                 />
               </div>
 
@@ -213,19 +246,13 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
               <CardTitle>Conditions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-4">
                 <div>
                   <Label>Lieu</Label>
                   <Input
                     value={mission.location || ""}
                     onChange={(e) => setMission({ ...mission, location: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Ville</Label>
-                  <Input
-                    value={mission.city || ""}
-                    onChange={(e) => setMission({ ...mission, city: e.target.value })}
+                    placeholder="Ex: Paris, Remote, Lyon..."
                   />
                 </div>
               </div>
@@ -240,37 +267,120 @@ export default function EditMissionPage({ params }: EditMissionPageProps) {
                 </div>
                 <div>
                   <Label>Date de début</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP", { locale: fr }) : "Choisir une date"}
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className={cn("flex-1 justify-start text-left font-normal", !date && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP", { locale: fr }) : "Choisir une date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar 
+                          mode="single"
+                          selected={date} 
+                          onSelect={(newDate: Date | undefined) => {
+                            setDate(newDate)
+                            setMission({ ...mission, startDate: newDate ? newDate.toISOString() : null })
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {date && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setDate(undefined)
+                          setMission({ ...mission, startDate: null })
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar selected={date} onSelect={setDate} />
-                    </PopoverContent>
-                  </Popover>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>Budget min</Label>
+                  <Label>Budget (€)</Label>
                   <Input
                     type="number"
-                    value={mission.budgetMin || ""}
-                    onChange={(e) => setMission({ ...mission, budgetMin: e.target.value })}
+                    value={mission.budget || ""}
+                    onChange={(e) => setMission({ ...mission, budget: parseFloat(e.target.value) || 0 })}
+                    placeholder="Budget total du projet"
                   />
                 </div>
                 <div>
-                  <Label>Budget max</Label>
+                  <Label>Tarification</Label>
                   <Input
-                    type="number"
-                    value={mission.budgetMax || ""}
-                    onChange={(e) => setMission({ ...mission, budgetMax: e.target.value })}
+                    value={mission.pricing || ""}
+                    onChange={(e) => setMission({ ...mission, pricing: e.target.value })}
+                    placeholder="Ex: Forfait, Journalier, Mensuel..."
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* --- Informations entreprise --- */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations entreprise</CardTitle>
+              <CardDescription>Informations sur votre entreprise pour cette mission</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="companyDescription">Description de l'entreprise</Label>
+                <Textarea
+                  id="companyDescription"
+                  value={mission.companyDescription || ""}
+                  onChange={(e) => setMission({ ...mission, companyDescription: e.target.value })}
+                  className="min-h-24"
+                  placeholder="Présentez votre entreprise, sa culture, ses valeurs..."
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="companyLogo">Logo de l'entreprise (URL)</Label>
+                <Input
+                  id="companyLogo"
+                  value={mission.companyLogo || ""}
+                  onChange={(e) => setMission({ ...mission, companyLogo: e.target.value })}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* --- Statut de la mission --- */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Statut de la mission</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-2">
+                <Label>Statut</Label>
+                <Select
+                  value={mission.status || "PUBLISHED"}
+                  onValueChange={(value) => setMission({ ...mission, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PUBLISHED">Publiée</SelectItem>
+                    <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                    <SelectItem value="COMPLETED">Terminée</SelectItem>
+                    <SelectItem value="CANCELLED">Annulée</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

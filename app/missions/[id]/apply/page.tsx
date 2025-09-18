@@ -186,8 +186,8 @@ export default function ApplyPage({ params }: ApplyPageProps) {
   }
 
   return (
-    <div className="container py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto w-screen py-8 px-4">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center space-x-4 mb-6">
           <Button asChild variant="outline" size="sm">
             <Link href={`/missions/${missionId}`}>

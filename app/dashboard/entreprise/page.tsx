@@ -10,31 +10,37 @@ import Link from "next/link"
 
 export default function EntrepriseDashboard() {
   const [publishedMissions, setPublishedMissions] = useState<any[]>([])
+  const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 🔹 Charger les missions depuis l'API
+  // 🔹 Charger les missions et candidatures depuis l'API
   useEffect(() => {
-    fetch("/api/missions")
-      .then((res) => res.json())
-      .then((data) => setPublishedMissions(data))
-      .catch((err) => console.error("Erreur chargement missions :", err))
-      .finally(() => setLoading(false))
+    const fetchData = async () => {
+      try {
+        // Fetch missions
+        const missionsResponse = await fetch("/api/missions")
+        if (missionsResponse.ok) {
+          const missionsData = await missionsResponse.json()
+          setPublishedMissions(missionsData)
+        }
+
+        // Fetch applications
+        const applicationsResponse = await fetch("/api/dashboard/entreprise")
+        if (applicationsResponse.ok) {
+          const applicationsData = await applicationsResponse.json()
+          setApplications(applicationsData)
+        }
+      } catch (err) {
+        console.error("Erreur chargement données :", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
-  // 🔹 Candidatures et factures (placeholder pour l’instant)
-  const applications = [
-    {
-      id: 101,
-      missionId: 1,
-      missionTitle: "Développement application web React",
-      freelanceName: "Sophie Martin",
-      appliedAt: "05/04/2024",
-      status: "Nouveau",
-      matchRate: 95,
-      dailyRate: "550€",
-    },
-  ]
-
+  // 🔹 Factures (placeholder pour l'instant)
   const invoices = [
     {
       id: 2001,
@@ -203,30 +209,30 @@ export default function EntrepriseDashboard() {
             <div className="grid gap-4">
               <h2 className="text-xl font-semibold">Candidatures reçues</h2>
               {applications.length === 0 ? (
-                <p>Aucune candidature reçue pour l’instant.</p>
+                <p>Aucune candidature reçue pour l'instant.</p>
               ) : (
                 applications.map((app) => (
                   <Card key={app.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle>{app.freelanceName}</CardTitle>
-                          <CardDescription>Pour : {app.missionTitle}</CardDescription>
+                          <CardTitle>{app.freelancer?.name || "Freelance"}</CardTitle>
+                          <CardDescription>Pour : {app.mission?.title || "Mission"}</CardDescription>
                         </div>
                         <Badge variant={app.status === "Nouveau" ? "default" : "secondary"}>{app.status}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm">Candidature le {app.appliedAt}</p>
-                      <p className="text-sm">Taux journalier : {app.dailyRate}</p>
-                      <p className="text-sm">Compatibilité : {app.matchRate}%</p>
+                      <p className="text-sm">Candidature le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
+                      <p className="text-sm">Taux journalier : {app.dailyRate}€</p>
+                      <p className="text-sm">Compatibilité : {app.matchScore}%</p>
+                      {app.freelancer?.location && (
+                        <p className="text-sm">📍 {app.freelancer.location}</p>
+                      )}
                     </CardContent>
                     <CardFooter>
                       <Button asChild variant="outline">
-                        <Link href={`/freelancers/${app.id}`}>Profil du freelance</Link>
-                      </Button>
-                      <Button asChild className="bg-violet-600 hover:bg-violet-700">
-                        <Link href={`/applications/${app.id}`}>Voir candidature</Link>
+                        <Link href={`/missions/${app.mission?.id}/applications`}>Voir candidature</Link>
                       </Button>
                     </CardFooter>
                   </Card>
