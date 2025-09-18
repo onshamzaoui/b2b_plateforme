@@ -347,16 +347,6 @@ export default function ApplyPage({ params }: ApplyPageProps) {
                   )}
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="portfolio">Portfolio / Exemples de travaux (optionnel)</Label>
-                  <div className="flex items-center gap-4">
-                    <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Ajouter des fichiers
-                    </Button>
-                    <span className="text-sm text-muted-foreground">Images, PDF - 10MB max par fichier</span>
-                  </div>
-                </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="portfolioLinks">Liens vers vos réalisations</Label>

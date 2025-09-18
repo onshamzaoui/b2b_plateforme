@@ -12,6 +12,7 @@ import Link from "next/link"
 export default function EntrepriseDashboard() {
   const [publishedMissions, setPublishedMissions] = useState<any[]>([])
   const [applications, setApplications] = useState<any[]>([])
+  const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // 🔹 Charger les missions et candidatures depuis l'API
@@ -31,6 +32,13 @@ export default function EntrepriseDashboard() {
           const applicationsData = await applicationsResponse.json()
           setApplications(applicationsData)
         }
+
+        // Fetch invoices
+        const invoicesResponse = await fetch("/api/invoices")
+        if (invoicesResponse.ok) {
+          const invoicesData = await invoicesResponse.json()
+          setInvoices(invoicesData)
+        }
       } catch (err) {
         console.error("Erreur chargement données :", err)
       } finally {
@@ -41,17 +49,6 @@ export default function EntrepriseDashboard() {
     fetchData()
   }, [])
 
-  // 🔹 Factures (placeholder pour l'instant)
-  const invoices = [
-    {
-      id: 2001,
-      missionTitle: "Refonte site corporate",
-      freelanceName: "Marie Dupont",
-      amount: "9600€",
-      issueDate: "31/03/2024",
-      status: "En attente",
-    },
-  ]
 
   if (loading) {
     return <div className="p-6">Chargement...</div>
@@ -73,9 +70,9 @@ export default function EntrepriseDashboard() {
               <CardTitle className="text-lg">Missions publiées</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-violet-600">{missions.length}</div>
+              <div className="text-3xl font-bold text-violet-600">{publishedMissions.length}</div>
               <p className="text-sm text-muted-foreground">
-                {missions.filter((m) => m.status === "PUBLISHED").length} missions actives
+                {publishedMissions.filter((m) => m.status === "PUBLISHED").length} missions actives
               </p>
             </CardContent>
             <CardFooter>
@@ -96,7 +93,7 @@ export default function EntrepriseDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-violet-600">{applications.length}</div>
               <p className="text-sm text-muted-foreground">
-                {applications.filter((app) => app.status === "PENDING").length} candidatures en attente
+                {applications.filter((app) => app.status === "Nouveau").length} candidatures en attente
               </p>
             </CardContent>
             <CardFooter>
@@ -152,10 +149,10 @@ export default function EntrepriseDashboard() {
       </Button>
     </div>
 
-    {missions.length === 0 ? (
+    {publishedMissions.length === 0 ? (
       <p>Aucune mission publiée.</p>
     ) : (
-      missions.map((mission) => (
+      publishedMissions.map((mission) => (
         <Card key={mission.id}>
           <CardHeader>
             <div className="flex justify-between">
@@ -223,27 +220,57 @@ export default function EntrepriseDashboard() {
 
           {/* Factures */}
           <TabsContent value="invoices" id="invoices">
-            {invoices.length === 0 ? (
-              <p>Aucune facture.</p>
-            ) : (
-              invoices.map((inv) => (
-                <Card key={inv.id}>
-                  <CardHeader>
-                    <div className="flex justify-between">
-                      <div>
-                        <CardTitle>Facture #{inv.id}</CardTitle>
-                        <CardDescription>{inv.user.name}</CardDescription>
+            <div className="grid gap-4">
+              <h2 className="text-xl font-semibold">Factures reçues</h2>
+              {invoices.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Aucune facture reçue pour le moment</p>
+                </div>
+              ) : (
+                invoices.map((invoice) => (
+                  <Card key={invoice.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Facture #{invoice.invoiceNumber}</CardTitle>
+                          <CardDescription>De: {invoice.freelancer?.name || "Freelance"}</CardDescription>
+                        </div>
+                        <Badge variant={invoice.status === "PAID" ? "default" : invoice.status === "PENDING" ? "secondary" : "destructive"}>
+                          {invoice.status === "PAID" ? "Payée" : invoice.status === "PENDING" ? "En attente" : "Annulée"}
+                        </Badge>
                       </div>
-                      <Badge>{inv.status}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p>Montant : {inv.amount} €</p>
-                    <p>Émise le : {new Date(inv.issuedAt).toLocaleDateString("fr-FR")}</p>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="font-medium">Montant HT :</span> {invoice.amount}€
+                        </div>
+                        <div>
+                          <span className="font-medium">TVA :</span> {invoice.taxAmount}€
+                        </div>
+                        <div>
+                          <span className="font-medium">Total TTC :</span> {invoice.totalAmount}€
+                        </div>
+                        <div>
+                          <span className="font-medium">Échéance :</span> {new Date(invoice.dueDate).toLocaleDateString("fr-FR")}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">{invoice.description}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button asChild variant="outline">
+                        <Link href={`/invoices/${invoice.id}`}>Voir détails</Link>
+                      </Button>
+                      {invoice.status === "PENDING" && (
+                        <Button className="bg-green-600 hover:bg-green-700">
+                          Marquer comme payée
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
         
