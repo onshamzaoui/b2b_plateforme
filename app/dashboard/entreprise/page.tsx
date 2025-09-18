@@ -10,41 +10,48 @@ import { BriefcaseBusiness, Eye, FileText, PlusCircle, Users } from "lucide-reac
 import Link from "next/link"
 
 export default function EntrepriseDashboard() {
-  const { data: session } = useSession()
-  const [missions, setMissions] = useState<any[]>([])
+  const [publishedMissions, setPublishedMissions] = useState<any[]>([])
   const [applications, setApplications] = useState<any[]>([])
-  const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 🔹 Charger les missions / candidatures / factures
+  // 🔹 Charger les missions et candidatures depuis l'API
   useEffect(() => {
-    if (!session?.user?.id) return
-
     const fetchData = async () => {
       try {
-        // Récupérer les missions de l’entreprise connectée
-        const resMissions = await fetch(`/api/missions?entrepriseId=${session.user.id}`)
-        const missionsData = await resMissions.json()
-        setMissions(missionsData)
+        // Fetch missions
+        const missionsResponse = await fetch("/api/missions")
+        if (missionsResponse.ok) {
+          const missionsData = await missionsResponse.json()
+          setPublishedMissions(missionsData)
+        }
 
-        // Récupérer candidatures
-        const resApps = await fetch(`/api/applications?entrepriseId=${session.user.id}`)
-        const appsData = await resApps.json()
-        setApplications(appsData)
-
-        // Récupérer factures
-        const resInvoices = await fetch(`/api/invoices?entrepriseId=${session.user.id}`)
-        const invoicesData = await resInvoices.json()
-        setInvoices(invoicesData)
+        // Fetch applications
+        const applicationsResponse = await fetch("/api/dashboard/entreprise")
+        if (applicationsResponse.ok) {
+          const applicationsData = await applicationsResponse.json()
+          setApplications(applicationsData)
+        }
       } catch (err) {
-        console.error("Erreur chargement dashboard :", err)
+        console.error("Erreur chargement données :", err)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [session?.user?.id])
+  }, [])
+
+  // 🔹 Factures (placeholder pour l'instant)
+  const invoices = [
+    {
+      id: 2001,
+      missionTitle: "Refonte site corporate",
+      freelanceName: "Marie Dupont",
+      amount: "9600€",
+      issueDate: "31/03/2024",
+      status: "En attente",
+    },
+  ]
 
   if (loading) {
     return <div className="p-6">Chargement...</div>
@@ -179,26 +186,39 @@ export default function EntrepriseDashboard() {
   </TabsContent>
           {/* Candidatures */}
           <TabsContent value="applications" id="applications">
-            {applications.length === 0 ? (
-              <p>Aucune candidature reçue.</p>
-            ) : (
-              applications.map((app) => (
-                <Card key={app.id}>
-                  <CardHeader>
-                    <div className="flex justify-between">
-                      <div>
-                        <CardTitle>{app.user.name}</CardTitle>
-                        <CardDescription>Mission : {app.mission.title}</CardDescription>
+            <div className="grid gap-4">
+              <h2 className="text-xl font-semibold">Candidatures reçues</h2>
+              {applications.length === 0 ? (
+                <p>Aucune candidature reçue pour l'instant.</p>
+              ) : (
+                applications.map((app) => (
+                  <Card key={app.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{app.freelancer?.name || "Freelance"}</CardTitle>
+                          <CardDescription>Pour : {app.mission?.title || "Mission"}</CardDescription>
+                        </div>
+                        <Badge variant={app.status === "Nouveau" ? "default" : "secondary"}>{app.status}</Badge>
                       </div>
-                      <Badge>{app.status}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p>Candidature le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">Candidature le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
+                      <p className="text-sm">Taux journalier : {app.dailyRate}€</p>
+                      <p className="text-sm">Compatibilité : {app.matchScore}%</p>
+                      {app.freelancer?.location && (
+                        <p className="text-sm">📍 {app.freelancer.location}</p>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline">
+                        <Link href={`/missions/${app.mission?.id}/applications`}>Voir candidature</Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
 
           {/* Factures */}

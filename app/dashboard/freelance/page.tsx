@@ -34,6 +34,7 @@ export default function FreelanceDashboard() {
 
       try {
         const response = await fetch("/api/dashboard/freelance")
+        console.log(response)
         if (response.ok) {
           const data = await response.json()
           setDashboardData(data)

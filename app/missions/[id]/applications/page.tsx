@@ -35,23 +35,34 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true)
 
 
-  // 🔹 Charger les candidatures dynamiquement
+  // 🔹 Charger les candidatures depuis l'API
   useEffect(() => {
+    if (!missionId) return
+
     const fetchApplications = async () => {
       try {
-        const res = await fetch(`/api/missions/${missionId}/applications`)
-        const data = await res.json()
+        const response = await fetch(`/api/missions/${missionId}/applications`)
+        
+        if (!response.ok) {
+          if (response.status === 403) {
+            console.error("Accès non autorisé à cette mission")
+            return
+          }
+          throw new Error("Erreur lors du chargement des candidatures")
+        }
+
+        const data = await response.json()
+        console.log("Applications data:", data) // Debug log
         setApplications(data)
-      } catch (err) {
-        console.error("Erreur chargement candidatures:", err)
+      } catch (error) {
+        console.error("Erreur chargement candidatures:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    if (missionId) fetchApplications()
+    fetchApplications()
   }, [missionId])
-
 
 const handleUpdateStatus = async (applicationId: string, newStatus: string) => {
   try {
@@ -109,8 +120,8 @@ const handleUpdateStatus = async (applicationId: string, newStatus: string) => {
   const rejectedApplications = applications.filter((a) => a.status === "Refusé")
 
   return (
-    <div className="container py-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="container mx-auto w-screen py-8">
+      <div className="max-w-7xl mx-auto">
         {/* Retour */}
         <div className="flex items-center space-x-4 mb-6">
           <Button asChild variant="outline" size="sm">
@@ -131,48 +142,100 @@ const handleUpdateStatus = async (applicationId: string, newStatus: string) => {
 
           <TabsContent value="all">
             <div className="space-y-6">
-              {applications.map((application) => (
-                <Card key={application.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={application.freelancer.avatar} alt={application.freelancer.name} />
-                          <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
-                        </Avatar>
+              {applications.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Aucune candidature reçue pour cette mission.
+                </p>
+              ) : (
+                applications.map((application) => (
+                  <Card key={application.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage 
+                              src={application.freelancer?.profileImage || "/placeholder-user.jpg"} 
+                              alt={application.freelancer?.name || "Freelance"} 
+                            />
+                            <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle>{application.freelancer?.name || "Freelance"}</CardTitle>
+                            <CardDescription>{application.freelancer?.profession || "Freelance"}</CardDescription>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <span>📍 {application.freelancer?.location || "Non spécifié"}</span>
+                              <span>💰 {application.dailyRate}€/jour</span>
+                              <span className={getMatchScoreColor(application.matchScore)}>
+                                🎯 {application.matchScore}% de compatibilité
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge className={getStatusColor(application.status)}>{application.status}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
                         <div>
-                          <CardTitle>{application.freelancer.name}</CardTitle>
-                          <CardDescription>{application.freelancer.profession}</CardDescription>
+                          <h4 className="font-medium text-sm mb-1">Motivation</h4>
+                          <p className="text-sm text-muted-foreground">{application.motivation}</p>
+                        </div>
+                        
+                        {application.experience && (
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Expérience</h4>
+                            <p className="text-sm text-muted-foreground">{application.experience}</p>
+                          </div>
+                        )}
+
+                        {application.availability && (
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Disponibilité</h4>
+                            <p className="text-sm text-muted-foreground">{application.availability}</p>
+                          </div>
+                        )}
+
+                        {application.skills && application.skills.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Compétences</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {application.skills.map((skill: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="text-xs text-muted-foreground">
+                          Candidature envoyée le {new Date(application.appliedAt).toLocaleDateString("fr-FR")}
                         </div>
                       </div>
-                      <Badge className={getStatusColor(application.status)}>{application.status}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm mb-2">{application.motivation}</p>
-                    <Separator className="my-2" />
-                    <div className="flex justify-end gap-2">
-                      <Button
-  size="sm"
-  className="bg-green-600 hover:bg-green-700"
-  onClick={() => handleUpdateStatus(application.id, "ACCEPTED")}
->
-  Accepter
-</Button>
-
-<Button
-  variant="outline"
-  size="sm"
-  className="text-red-600 hover:text-red-700"
-  onClick={() => handleUpdateStatus(application.id, "REJECTED")}
->
-  Refuser
-</Button>
-
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleUpdateStatus(application.id, "Accepté")}
+                        >
+                          Accepter
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleUpdateStatus(application.id, "Refusé")}
+                        >
+                          Refuser
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>

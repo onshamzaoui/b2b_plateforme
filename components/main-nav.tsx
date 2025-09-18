@@ -25,6 +25,8 @@ export default function MainNav() {
     { href: "/dashboard/entreprise", label: "Tableau de bord", public: false, type: "entreprise" },
     { href: "/missions", label: "Missions", public: true },
     { href: "/applications", label: "Mes candidatures", public: false, type: "freelance" },
+    { href: "/contracts", label: "Mes contrats", public: false },
+    { href: "/invoices", label: "Mes factures", public: false },
     { href: "/tarifs", label: "Tarifs", public: true },
   ]
 

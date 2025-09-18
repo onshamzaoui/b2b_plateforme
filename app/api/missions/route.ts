@@ -5,25 +5,39 @@ import { authOptions } from "../auth/[...nextauth]/route"  // adapte bien le che
 
 const prisma = new PrismaClient()
 
-export async function GET(req: Request) {
+// GET -> liste les missions selon le rôle de l'utilisateur
+export async function GET() {
   try {
+    // 🔹 Vérifier la session utilisateur
     const session = await getServerSession(authOptions)
 
-    // Si c'est une entreprise → afficher seulement SES missions
-    if (session && session.user.role === "ENTREPRISE") {
-      const missions = await prisma.mission.findMany({
-        where: { companyId: session.user.id },
-        orderBy: { createdAt: "desc" },
-      })
-      return NextResponse.json(missions)
+    if (!session) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    // Si c'est un freelance → afficher seulement les missions publiées
-    const missions = await prisma.mission.findMany({
-      where: { status: "PUBLISHED" },
-      include: { company: true },
-      orderBy: { createdAt: "desc" },
-    })
+    let missions
+
+    if (session.user.role === "ENTREPRISE") {
+      // Les entreprises voient seulement leurs propres missions
+      missions = await prisma.mission.findMany({
+        where: { companyId: session.user.id },
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    } else if (session.user.role === "FREELANCE") {
+      // Les freelances voient toutes les missions publiées
+      missions = await prisma.mission.findMany({
+        where: { status: "PUBLISHED" },
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    } else {
+      // Admin ou autres rôles voient toutes les missions
+      missions = await prisma.mission.findMany({
+        include: { company: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    }
 
     return NextResponse.json(missions)
   } catch (error) {
@@ -66,9 +80,18 @@ export async function POST(request: Request) {
       data: {
         title: body.title,
         description: body.description,
-        budget: body.budgetMax ?? 0,
+        requirements: body.requirements,
+        projectContext: body.projectContext,
+        location: body.location,
+        duration: body.duration,
+        startDate: body.startDate ? new Date(body.startDate).toISOString() : null,
+        budget: body.budget ?? 0,
+        pricing: body.pricing,
+        skills: body.skills || [],
         status: "PUBLISHED",
-        companyId: session.user.id, // ✅ on prend l’id de l’utilisateur connecté
+        companyId: session.user.id, // ✅ on prend l'id de l'utilisateur connecté
+        companyDescription: body.companyDescription,
+        companyLogo: body.companyLogo,
       },
     })
 
