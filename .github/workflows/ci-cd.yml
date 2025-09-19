@@ -84,6 +84,21 @@ jobs:
 
       - name: Build application
         run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: dummy_secret_for_build
+          RESEND_API_KEY: dummy_key_for_build
+          RESEND_FROM: noreply@example.com
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy_key_for_build
+          STRIPE_SECRET_KEY: sk_test_dummy_key_for_build
+          STRIPE_WEBHOOK_SECRET: dummy_webhook_secret_for_build
+          STRIPE_PRICE_FREELANCER_PRO: dummy_price_for_build
+          STRIPE_PRICE_FREELANCER_EXPERT: dummy_price_for_build
+          STRIPE_PRICE_ENTERPRISE_STARTER: dummy_price_for_build
+          STRIPE_PRICE_ENTERPRISE_BUSINESS: dummy_price_for_build
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_ABLY_API_KEY: dummy_key_for_build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
