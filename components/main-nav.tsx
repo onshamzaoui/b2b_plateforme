@@ -10,29 +10,76 @@ import { ModeToggle } from "./mode-toggle"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useSession, signOut } from "next-auth/react"
+import { useEffect, useState } from "react"
 
 export default function MainNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = React.useState(false)
+  const [userPlan, setUserPlan] = useState<string | null>(null)
   const { data: session, status } = useSession()
 
   const isLoggedIn = !!session
   const userType = session?.user?.role?.toLowerCase() as "freelance" | "entreprise" | null
 
+  // Fetch user plan information
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserPlan()
+    }
+  }, [session?.user?.id])
+
+  const fetchUserPlan = async () => {
+    try {
+      const response = await fetch('/api/user/current-plan')
+      if (response.ok) {
+        const data = await response.json()
+        setUserPlan(data.currentPlan)
+      }
+    } catch (error) {
+      console.error('Error fetching user plan:', error)
+    }
+  }
+
+  const getPlanDisplayName = (plan: string) => {
+    const planNames: { [key: string]: string } = {
+      'FREE': 'Gratuit',
+      'PRO': 'Pro',
+      'EXPERT': 'Expert',
+      'STARTER': 'Starter',
+      'BUSINESS': 'Business',
+      'ENTERPRISE': 'Enterprise'
+    }
+    return planNames[plan] || plan
+  }
+
   const routes = [
-    { href: "/", label: "Accueil", public: true },
+    // { href: "/", label: "Accueil", public: true },
     { href: "/dashboard/freelance", label: "Tableau de bord", public: false, type: "freelance" },
     { href: "/dashboard/entreprise", label: "Tableau de bord", public: false, type: "entreprise" },
     { href: "/missions", label: "Missions", public: true },
-    { href: "/applications", label: "Mes candidatures", public: false, type: "freelance" },
-    { href: "/contracts", label: "Mes contrats", public: false },
-    { href: "/invoices", label: "Mes factures", public: false },
+    { href: "/applications", label: "Mes candidatures", public: false, type: "freelance", requiresSubscription: true },
+    { href: "/contracts", label: "Mes contrats", public: false, requiresSubscription: true },
+    { href: "/invoices", label: "Mes factures", public: false, requiresSubscription: true },
     { href: "/tarifs", label: "Tarifs", public: true },
   ]
 
-  const filteredRoutes = routes.filter(
-    (route) => route.public || (isLoggedIn && (!route.type || route.type === userType)),
-  )
+  const filteredRoutes = routes.filter((route) => {
+    // Public routes are always shown
+    if (route.public) return true
+    
+    // For private routes, user must be logged in
+    if (!isLoggedIn) return false
+    
+    // Check user type match
+    if (route.type && route.type !== userType) return false
+    
+    // Check subscription requirement
+    if (route.requiresSubscription) {
+      return userPlan && userPlan !== 'FREE'
+    }
+    
+    return true
+  })
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -66,6 +113,11 @@ export default function MainNav() {
                     <div className="px-2 py-1.5 border-b">
                       <p className="text-sm font-medium">{session?.user?.name}</p>
                       <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
+                      {userPlan && userPlan !== 'FREE' && (
+                        <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mt-1">
+                          Plan {getPlanDisplayName(userPlan)}
+                        </p>
+                      )}
                     </div>
                     <Button asChild variant="ghost" className="justify-start" onClick={() => setIsOpen(false)}>
                       <Link href="/profile" className="flex items-center">
@@ -128,7 +180,17 @@ export default function MainNav() {
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{session?.user?.name}</span>
-                      <span className="text-xs text-muted-foreground">{session?.user?.role === "FREELANCE" ? "Freelance" : "Entreprise"}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">{session?.user?.role === "FREELANCE" ? "Freelance" : "Entreprise"}</span>
+                        {userPlan && userPlan !== 'FREE' && (
+                          <>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs font-medium text-violet-600 dark:text-violet-400">
+                              {getPlanDisplayName(userPlan)}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <ChevronDown className="h-3 w-3" />
                   </div>

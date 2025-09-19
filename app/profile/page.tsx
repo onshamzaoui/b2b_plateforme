@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Calendar, Plus, Trash2, Upload } from "lucide-react"
+import { Calendar, Plus, Trash2, Upload, CreditCard, AlertTriangle } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
@@ -68,6 +68,14 @@ export default function ProfilePage() {
   const [availability, setAvailability] = useState("available")
   const [companySize, setCompanySize] = useState("small")
   
+  // Subscription state
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    currentPlan: string
+    planExpiresAt: string | null
+    isExpired: boolean
+  } | null>(null)
+  const [isUnsubscribing, setIsUnsubscribing] = useState(false)
+  
   // Password form state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -92,6 +100,18 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Erreur chargement CVs:", error)
+    }
+  }
+
+  const loadSubscriptionInfo = async () => {
+    try {
+      const response = await fetch("/api/user/current-plan")
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionInfo(data)
+      }
+    } catch (error) {
+      console.error("Erreur chargement abonnement:", error)
     }
   }
 
@@ -126,6 +146,13 @@ export default function ProfilePage() {
           } catch (cvError) {
             console.error("Erreur chargement CVs:", cvError)
             // Don't show error toast for CV loading failure as it's not critical
+          }
+
+          // Load subscription info
+          try {
+            await loadSubscriptionInfo()
+          } catch (subscriptionError) {
+            console.error("Erreur chargement abonnement:", subscriptionError)
           }
         } else {
           toast({
@@ -467,6 +494,65 @@ export default function ProfilePage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleUnsubscribe = async () => {
+    if (!subscriptionInfo || subscriptionInfo.currentPlan === 'FREE') {
+      toast({
+        title: "Erreur",
+        description: "Vous n'avez pas d'abonnement actif à annuler",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsUnsubscribing(true)
+    try {
+      const response = await fetch('/api/payments/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "✅ Abonnement annulé",
+          description: "Votre abonnement a été annulé avec succès. Il restera actif jusqu'à la fin de la période payée.",
+        })
+        // Reload subscription info
+        await loadSubscriptionInfo()
+      } else {
+        toast({
+          title: "Erreur",
+          description: data.error || "Erreur lors de l'annulation de l'abonnement",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error unsubscribing:', error)
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'annulation de l'abonnement",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUnsubscribing(false)
+    }
+  }
+
+  const getPlanDisplayName = (plan: string) => {
+    const planNames: { [key: string]: string } = {
+      'FREE': 'Gratuit',
+      'PRO': 'Pro',
+      'EXPERT': 'Expert',
+      'STARTER': 'Starter',
+      'BUSINESS': 'Business',
+      'ENTERPRISE': 'Enterprise'
+    }
+    return planNames[plan] || plan
   }
 
   return (
@@ -1119,6 +1205,92 @@ export default function ProfilePage() {
                     {isSubmitting ? "Enregistrement..." : "Enregistrer les préférences"}
                   </Button>
                 </div>
+              </Card>
+
+              {/* Subscription Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Gestion de l'abonnement
+                  </CardTitle>
+                  <CardDescription>
+                    Gérez votre abonnement et vos factures
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {subscriptionInfo ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h3 className="font-medium">Plan actuel</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {getPlanDisplayName(subscriptionInfo.currentPlan)}
+                          </p>
+                          {subscriptionInfo.planExpiresAt && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Expire le {new Date(subscriptionInfo.planExpiresAt).toLocaleDateString('fr-FR')}
+                            </p>
+                          )}
+                        </div>
+                        <Badge 
+                          variant={subscriptionInfo.currentPlan === 'FREE' ? 'secondary' : 'default'}
+                          className={subscriptionInfo.currentPlan === 'FREE' ? '' : 'bg-violet-600'}
+                        >
+                          {subscriptionInfo.currentPlan === 'FREE' ? 'Gratuit' : 'Payant'}
+                        </Badge>
+                      </div>
+
+                      {subscriptionInfo.currentPlan !== 'FREE' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 text-orange-600" />
+                            <div className="text-sm">
+                              <p className="font-medium text-orange-800 dark:text-orange-200">
+                                Annulation d'abonnement
+                              </p>
+                              <p className="text-orange-700 dark:text-orange-300">
+                                Votre abonnement restera actif jusqu'à la fin de la période payée.
+                              </p>
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            onClick={handleUnsubscribe}
+                            disabled={isUnsubscribing}
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          >
+                            {isUnsubscribing ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                                Annulation en cours...
+                              </>
+                            ) : (
+                              'Annuler l\'abonnement'
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {subscriptionInfo.currentPlan === 'FREE' && (
+                        <div className="text-center p-4 border rounded-lg bg-muted/50">
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Vous utilisez actuellement le plan gratuit
+                          </p>
+                          <Button asChild className="bg-violet-600 hover:bg-violet-700">
+                            <a href="/tarifs">Voir les plans disponibles</a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center p-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-muted-foreground">Chargement des informations d'abonnement...</p>
+                    </div>
+                  )}
+                </CardContent>
               </Card>
             </div>
           </TabsContent>

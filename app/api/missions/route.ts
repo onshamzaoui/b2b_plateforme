@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"  // adapte bien le chemin si besoin
+import { validateMissionPostingPayment, consumeMissionCredit } from "@/lib/payment-utils"
 
 const prisma = new PrismaClient()
 
@@ -74,6 +75,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Accès interdit" }, { status: 403 })
     }
 
+    // 🔹 Vérifier les droits de publication de mission
+    const paymentValidation = await validateMissionPostingPayment(session.user.id)
+    if (!paymentValidation.success) {
+      return NextResponse.json({ 
+        error: paymentValidation.error,
+        code: "PAYMENT_REQUIRED"
+      }, { status: 402 }) // 402 Payment Required
+    }
+
     const body = await request.json()
 
     const mission = await prisma.mission.create({
@@ -94,6 +104,9 @@ export async function POST(request: Request) {
         companyLogo: body.companyLogo,
       },
     })
+
+    // 🔹 Consommer un crédit de mission après création réussie
+    await consumeMissionCredit(session.user.id)
 
     return NextResponse.json(mission, { status: 201 })
   } catch (error) {

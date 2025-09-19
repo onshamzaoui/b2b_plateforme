@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Upload, ArrowLeft, Send } from "lucide-react"
+import { Upload, ArrowLeft, Send, AlertTriangle, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -28,6 +28,12 @@ export default function ApplyPage({ params }: ApplyPageProps) {
   const { data: session, status } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    currentPlan: string
+    planExpiresAt: string | null
+    isExpired: boolean
+  } | null>(null)
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true)
   const [mission, setMission] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [userCvs, setUserCvs] = useState<any[]>([])
@@ -78,10 +84,11 @@ export default function ApplyPage({ params }: ApplyPageProps) {
     const fetchUserData = async () => {
       if (status === "authenticated") {
         try {
-          const [profileResponse, cvsResponse, dashboardResponse] = await Promise.all([
+          const [profileResponse, cvsResponse, dashboardResponse, subscriptionResponse] = await Promise.all([
             fetch("/api/user/profile"),
             fetch("/api/user/cv"),
-            fetch("/api/dashboard/freelance")
+            fetch("/api/dashboard/freelance"),
+            fetch("/api/user/current-plan")
           ])
 
           if (profileResponse.ok) {
@@ -111,10 +118,16 @@ export default function ApplyPage({ params }: ApplyPageProps) {
               router.push(`/missions/${missionId}`)
             }
           }
+
+          if (subscriptionResponse.ok) {
+            const subscriptionData = await subscriptionResponse.json()
+            setSubscriptionInfo(subscriptionData)
+          }
         } catch (error) {
           console.error("Error fetching user data:", error)
         } finally {
           setIsLoading(false)
+          setIsLoadingSubscription(false)
         }
       }
     }
@@ -159,6 +172,20 @@ export default function ApplyPage({ params }: ApplyPageProps) {
         })
         router.push("/dashboard/freelance")
       } else {
+        // Handle payment required error
+        if (response.status === 402 && result.code === "PAYMENT_REQUIRED") {
+          toast({
+            title: "Abonnement requis",
+            description: result.error || "Vous devez avoir un abonnement actif pour postuler aux missions.",
+            variant: "destructive",
+          })
+          // Redirect to pricing page
+          setTimeout(() => {
+            router.push("/tarifs")
+          }, 2000)
+          return
+        }
+        
         toast({
           title: "Erreur",
           description: result.error || "Erreur lors de l'envoi de la candidature",
@@ -177,12 +204,65 @@ export default function ApplyPage({ params }: ApplyPageProps) {
     }
   }
 
-  if (isLoading || status === "loading") {
+  if (isLoading || status === "loading" || isLoadingSubscription) {
     return <div className="container py-8 text-center">Chargement...</div>
   }
 
   if (!mission) {
     return <div className="container py-8 text-center">Mission non trouvée</div>
+  }
+
+  // Check subscription status
+  if (subscriptionInfo && (subscriptionInfo.currentPlan === 'FREE' || subscriptionInfo.isExpired)) {
+    return (
+      <div className="container mx-auto w-screen py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center space-x-4 mb-6">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/missions/${missionId}`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Retour à la mission
+              </Link>
+            </Button>
+          </div>
+
+          <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <AlertTriangle className="h-16 w-16 text-orange-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-orange-800 dark:text-orange-200 mb-2">
+                    Abonnement requis
+                  </h2>
+                  <p className="text-orange-700 dark:text-orange-300 mb-4">
+                    Vous devez avoir un abonnement actif pour postuler aux missions.
+                    {subscriptionInfo.currentPlan === 'FREE' 
+                      ? ' Passez à un plan payant pour postuler sans limite.'
+                      : ' Votre abonnement a expiré. Renouvelez-le pour continuer à postuler.'
+                    }
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button asChild className="bg-orange-600 hover:bg-orange-700">
+                      <a href="/tarifs" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Voir les plans disponibles
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <Link href={`/missions/${missionId}`}>
+                        Retour à la mission
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (

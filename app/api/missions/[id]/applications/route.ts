@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { validateApplicationPayment, consumeApplicationCredit } from "@/lib/payment-utils"
 
 const prisma = new PrismaClient()
 
@@ -60,6 +61,15 @@ export async function POST(
       }, { status: 400 })
     }
 
+    // 🔹 Vérifier les droits de candidature
+    const paymentValidation = await validateApplicationPayment(session.user.id)
+    if (!paymentValidation.success) {
+      return NextResponse.json({ 
+        error: paymentValidation.error,
+        code: "PAYMENT_REQUIRED"
+      }, { status: 402 }) // 402 Payment Required
+    }
+
     // Calculate match score based on skills overlap
     const missionSkills = mission.skills || []
     const userSkills = skills || []
@@ -112,6 +122,9 @@ export async function POST(
         }
       }
     })
+
+    // 🔹 Consommer un crédit de candidature après création réussie
+    await consumeApplicationCredit(session.user.id)
 
     return NextResponse.json({
       message: "Candidature envoyée avec succès",
