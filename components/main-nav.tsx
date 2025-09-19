@@ -5,27 +5,78 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Menu, User, LogOut, ChevronDown, Building } from "lucide-react"
 import { ModeToggle } from "./mode-toggle"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
+import { useAbly } from "@/components/ably-provider"
+import * as Ably from "ably"
 
 export default function MainNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = React.useState(false)
   const [userPlan, setUserPlan] = useState<string | null>(null)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const { data: session, status } = useSession()
+  const { ably, isConnected } = useAbly()
 
   const isLoggedIn = !!session
   const userType = session?.user?.role?.toLowerCase() as "freelance" | "entreprise" | null
 
-  // Fetch user plan information
+  // Fetch user plan information and unread messages
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserPlan()
+      fetchUnreadMessages()
     }
+  }, [session?.user?.id])
+
+  // Listen for new messages in real-time to update unread count
+  useEffect(() => {
+    if (!ably || !isConnected || !session?.user?.id) return
+
+    // Subscribe to a user-specific channel for notifications
+    const userChannel = ably.channels.get(`user-${session.user.id}`)
+    
+    const handleNewMessage = (message: Ably.Message) => {
+      const messageData = message.data as any
+      
+      // Only increment if the message is not from the current user
+      if (messageData.senderId !== session.user.id) {
+        setUnreadMessages(prev => prev + 1)
+      }
+    }
+
+    const handleMessageRead = (message: Ably.Message) => {
+      const data = message.data as any
+      if (data.action === 'markAsRead') {
+        // Refresh unread count when messages are marked as read
+        fetchUnreadMessages()
+      }
+    }
+
+    // Subscribe to message events
+    userChannel.subscribe('newMessage', handleNewMessage)
+    userChannel.subscribe('messageRead', handleMessageRead)
+
+    return () => {
+      userChannel.unsubscribe('newMessage', handleNewMessage)
+      userChannel.unsubscribe('messageRead', handleMessageRead)
+    }
+  }, [ably, isConnected, session?.user?.id])
+
+  // Periodic refresh of unread count as fallback (every 30 seconds)
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    const interval = setInterval(() => {
+      fetchUnreadMessages()
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
   }, [session?.user?.id])
 
   const fetchUserPlan = async () => {
@@ -37,6 +88,19 @@ export default function MainNav() {
       }
     } catch (error) {
       console.error('Error fetching user plan:', error)
+    }
+  }
+
+  const fetchUnreadMessages = async () => {
+    try {
+      const response = await fetch('/api/chat/conversations')
+      if (response.ok) {
+        const data = await response.json()
+        const totalUnread = data.conversations.reduce((sum: number, conv: any) => sum + conv.unreadCount, 0)
+        setUnreadMessages(totalUnread)
+      }
+    } catch (error) {
+      console.error('Error fetching unread messages:', error)
     }
   }
 
@@ -57,6 +121,7 @@ export default function MainNav() {
     { href: "/dashboard/freelance", label: "Tableau de bord", public: false, type: "freelance" },
     { href: "/dashboard/entreprise", label: "Tableau de bord", public: false, type: "entreprise" },
     { href: "/missions", label: "Missions", public: true },
+    { href: "/chat", label: "Messages", public: false },
     { href: "/applications", label: "Mes candidatures", public: false, type: "freelance", requiresSubscription: true },
     { href: "/contracts", label: "Mes contrats", public: false, requiresSubscription: true },
     { href: "/invoices", label: "Mes factures", public: false, requiresSubscription: true },
@@ -105,7 +170,14 @@ export default function MainNav() {
                     className={cn("justify-start", pathname === route.href && "bg-accent text-accent-foreground")}
                     onClick={() => setIsOpen(false)}
                   >
-                    <Link href={route.href}>{route.label}</Link>
+                    <Link href={route.href} className="flex items-center gap-2">
+                      {route.label}
+                      {route.href === '/chat' && unreadMessages > 0 && (
+                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                          {unreadMessages}
+                        </Badge>
+                      )}
+                    </Link>
                   </Button>
                 ))}
                 {isLoggedIn ? (
@@ -154,18 +226,23 @@ export default function MainNav() {
             Freelance<span className="text-violet-600 dark:text-violet-400 ml-1 font-light">Connect</span>
           </Link>
           <nav className="hidden lg:flex items-center space-x-6 ml-10">
-            {filteredRoutes.map((route) => (
-              <Link
-                key={route.href}
-                href={route.href}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === route.href ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {route.label}
-              </Link>
-            ))}
+                {filteredRoutes.map((route) => (
+                  <Link
+                    key={route.href}
+                    href={route.href}
+                    className={cn(
+                      "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2",
+                      pathname === route.href ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {route.label}
+                    {route.href === '/chat' && unreadMessages > 0 && (
+                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                        {unreadMessages}
+                      </Badge>
+                    )}
+                  </Link>
+                ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">
