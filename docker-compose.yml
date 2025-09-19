@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: b2b_plateforme_db
+    environment:
+      POSTGRES_DB: b2b_plateforme
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: b2b_plateforme_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: b2b_plateforme_app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/b2b_plateforme
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=dummy_secret_for_build
+      - RESEND_API_KEY=dummy_key_for_build
+      - RESEND_FROM=noreply@example.com
+      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_dummy_key_for_build
+      - STRIPE_SECRET_KEY=sk_test_dummy_key_for_build
+      - STRIPE_WEBHOOK_SECRET=dummy_webhook_secret_for_build
+      - STRIPE_PRICE_FREELANCER_PRO=dummy_price_for_build
+      - STRIPE_PRICE_FREELANCER_EXPERT=dummy_price_for_build
+      - STRIPE_PRICE_ENTERPRISE_STARTER=dummy_price_for_build
+      - STRIPE_PRICE_ENTERPRISE_BUSINESS=dummy_price_for_build
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - NEXT_PUBLIC_ABLY_API_KEY=dummy_key_for_build
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/public/uploads
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
