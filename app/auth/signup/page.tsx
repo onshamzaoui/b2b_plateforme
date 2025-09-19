@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useToast } from "@/hooks/use-toast"
 
-export default function SignupPage() {
+function SignupPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
@@ -203,3 +203,14 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   )
 }
+
+// Wrapper component with Suspense boundary
+function SignupPageWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading signup page...</div>}>
+      <SignupPage />
+    </Suspense>
+  )
+}
+
+export default SignupPageWithSuspense

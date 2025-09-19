@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -137,3 +137,14 @@ export default function PaymentSuccessPage() {
     </div>
   )
 }
+
+// Wrapper component with Suspense boundary
+function PaymentSuccessPageWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading payment success page...</div>}>
+      <PaymentSuccessPage />
+    </Suspense>
+  )
+}
+
+export default PaymentSuccessPageWithSuspense

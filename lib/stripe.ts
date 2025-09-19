@@ -1,12 +1,22 @@
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set')
+// Initialize Stripe only when needed to avoid build-time errors
+export const getStripe = () => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set')
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-08-27.basil',
+    typescript: true,
+  })
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-08-27.basil',
-  typescript: true,
+// For backward compatibility, create a lazy-initialized stripe instance
+export const stripe = new Proxy({} as Stripe, {
+  get(target, prop) {
+    const stripeInstance = getStripe()
+    return stripeInstance[prop as keyof Stripe]
+  }
 })
 
 // Pricing configuration

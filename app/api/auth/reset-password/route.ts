@@ -4,7 +4,14 @@ import crypto from "crypto"
 import { Resend } from 'resend'
 
 const prisma = new PrismaClient()
-const resend = new Resend(process.env.RESEND_API_KEY)
+
+// Initialize Resend only when needed to avoid build-time errors
+const getResend = () => {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not configured')
+  }
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     try {
+      const resend = getResend()
       await resend.emails.send({
         from: process.env.RESEND_FROM || 'noreply@resend.dev', // You can use resend.dev for testing
         to: email,

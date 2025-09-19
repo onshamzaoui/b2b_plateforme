@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building, Mail, Phone, Users, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 
-export default function ContactPage() {
+function ContactPage() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -333,3 +333,14 @@ export default function ContactPage() {
     </div>
   )
 }
+
+// Wrapper component with Suspense boundary
+function ContactPageWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading contact page...</div>}>
+      <ContactPage />
+    </Suspense>
+  )
+}
+
+export default ContactPageWithSuspense

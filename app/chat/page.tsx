@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,7 @@ interface Conversation {
   missionTitle?: string
 }
 
-export default function ChatPage() {
+function ChatPage() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const { ably, isConnected } = useAbly()
@@ -275,3 +275,14 @@ export default function ChatPage() {
     </div>
   )
 }
+
+// Wrapper component with Suspense boundary
+function ChatPageWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading chat...</div>}>
+      <ChatPage />
+    </Suspense>
+  )
+}
+
+export default ChatPageWithSuspense
