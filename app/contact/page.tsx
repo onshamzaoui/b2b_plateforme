@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building, Mail, Phone, Users, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 
-export default function ContactPage() {
+function ContactContent() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -331,5 +331,23 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={
+      <div className="container py-12 mx-auto w-screen">
+        <div className="max-w-7xl mx-auto">
+          <Card>
+            <CardContent className="flex items-center justify-center h-96">
+              <p className="text-muted-foreground">Chargement...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <ContactContent />
+    </Suspense>
   )
 }
