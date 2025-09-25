@@ -277,3 +277,4 @@ function generateInvoiceHTML(invoice: any): string {
   `
 }
 
+
