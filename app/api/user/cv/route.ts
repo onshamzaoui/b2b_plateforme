@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
+import { put, del as deleteFromBlob } from "@vercel/blob"
 
 const prisma = new PrismaClient()
 
@@ -60,29 +61,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Le fichier est trop volumineux. Taille maximale: 5MB" }, { status: 400 })
     }
 
-    // Créer le dossier de stockage s'il n'existe pas
-    const uploadDir = join(process.cwd(), "public", "uploads", "cvs")
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
-    // Générer un nom de fichier unique
-    const timestamp = Date.now()
-    const fileExtension = file.name.split('.').pop()
-    const fileName = `${session.user.id}_${timestamp}.${fileExtension}`
-    const filePath = join(uploadDir, fileName)
-
-    // Sauvegarder le fichier
+    // Préparer les données du fichier
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+
+    const timestamp = Date.now()
+    const fileExtension = file.name.split('.').pop()
+    const baseFileName = `${session.user.id}_${timestamp}.${fileExtension}`
+
+    const isProd = process.env.VERCEL === "1" || process.env.NODE_ENV === "production"
+
+    let storedPathOrUrl: string
+
+    if (isProd) {
+      // Stockage dans Vercel Blob en production (public)
+      const { url } = await put(`cvs/${baseFileName}`,
+        buffer,
+        {
+          access: "public",
+          contentType: file.type,
+          addRandomSuffix: false
+        }
+      )
+      storedPathOrUrl = url
+    } else {
+      // Stockage local en développement
+      const uploadDir = join(process.cwd(), "public", "uploads", "cvs")
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true })
+      }
+      const filePath = join(uploadDir, baseFileName)
+      await writeFile(filePath, buffer)
+      storedPathOrUrl = `/uploads/cvs/${baseFileName}`
+    }
 
     // Sauvegarder les informations en base de données
     const cv = await prisma.cV.create({
       data: {
         userId: session.user.id,
         title: title.trim(),
-        path: `/uploads/cvs/${fileName}`
+        path: storedPathOrUrl
       }
     })
 
@@ -120,11 +138,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "CV non trouvé" }, { status: 404 })
     }
 
-    // Supprimer le fichier du système de fichiers
-    const filePath = join(process.cwd(), "public", cv.path)
-    if (existsSync(filePath)) {
-      const { unlink } = await import("fs/promises")
-      await unlink(filePath)
+    // Supprimer le fichier du stockage
+    try {
+      if (cv.path.startsWith("http")) {
+        // Suppression depuis Vercel Blob (production)
+        await deleteFromBlob(cv.path)
+      } else {
+        // Suppression locale (développement)
+        const filePath = join(process.cwd(), "public", cv.path)
+        if (existsSync(filePath)) {
+          const { unlink } = await import("fs/promises")
+          await unlink(filePath)
+        }
+      }
+    } catch (e) {
+      // On log mais on ne bloque pas la suppression DB si le fichier n'existe plus
+      console.error("Erreur suppression fichier CV:", e)
     }
 
     // Supprimer de la base de données
