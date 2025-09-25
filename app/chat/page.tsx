@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,7 @@ interface Conversation {
   missionTitle?: string
 }
 
-export default function ChatPage() {
+function ChatContent() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const { ably, isConnected } = useAbly()
@@ -273,5 +273,23 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="container py-8 mx-auto w-screen">
+        <div className="max-w-7xl mx-auto">
+          <Card>
+            <CardContent className="flex items-center justify-center h-96">
+              <p className="text-muted-foreground">Chargement...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }
