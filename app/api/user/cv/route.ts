@@ -9,6 +9,7 @@ import { put, del as deleteFromBlob } from "@vercel/blob"
 
 const prisma = new PrismaClient()
 
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
