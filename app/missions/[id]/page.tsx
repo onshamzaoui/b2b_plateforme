@@ -5,9 +5,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Building, MapPin, Share, CheckCircle } from "lucide-react"
+import { Building, MapPin, Share, CheckCircle, MessageCircle } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useSession } from "next-auth/react"
+// import { ChatButton } from "@/components/chat/chat-button"
 
 export default function MissionDetailsPage() {
   const params = useParams()
@@ -102,24 +103,84 @@ export default function MissionDetailsPage() {
             </div>
 
             {session?.user?.role === "FREELANCE" ? (
-              hasApplied ? (
-                <Button disabled className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Candidature envoyée
-                </Button>
-              ) : (
-                <Button asChild className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700">
-                  <Link href={`/missions/${mission.id}/apply`}>Postuler à cette mission</Link>
-                </Button>
-              )
+              <div className="flex gap-2 flex-wrap">
+                {hasApplied ? (
+                  <Button disabled className="bg-green-600 hover:bg-green-700 text-white">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Candidature envoyée
+                  </Button>
+                ) : (
+                  <Button asChild className="bg-violet-600 hover:bg-violet-700">
+                    <Link href={`/missions/${mission.id}/apply`}>Postuler à cette mission</Link>
+                  </Button>
+                )}
+                {hasApplied && mission?.company && (
+                  <Button 
+                    variant="outline"
+                    onClick={async () => {
+                      // Create conversation participants
+                      try {
+                        await fetch('/api/chat/conversations', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            missionId: mission.id,
+                            participantId: mission.company.id
+                          }),
+                        })
+                        // Navigate to chat
+                        window.location.href = `/chat?conversation=mission-${mission.id}`
+                      } catch (error) {
+                        console.error('Error creating conversation:', error)
+                        // Still navigate to chat
+                        window.location.href = `/chat?conversation=mission-${mission.id}`
+                      }
+                    }}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chat
+                  </Button>
+                )}
+              </div>
             ) : session?.user?.role === "ENTREPRISE" ? (
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button asChild variant="outline">
                   <Link href={`/missions/${mission.id}/edit`}>Modifier</Link>
                 </Button>
                 <Button asChild className="bg-violet-600 hover:bg-violet-700">
                   <Link href={`/missions/${mission.id}/applications`}>Voir candidatures</Link>
                 </Button>
+                {mission?.company?.id === session?.user?.id && (
+                  <Button 
+                    variant="outline"
+                    onClick={async () => {
+                      // Create conversation participants
+                      try {
+                        await fetch('/api/chat/conversations', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            missionId: mission.id,
+                            participantId: 'freelance-applicants' // Will be updated when freelancers apply
+                          }),
+                        })
+                        // Navigate to chat
+                        window.location.href = `/chat?conversation=mission-${mission.id}`
+                      } catch (error) {
+                        console.error('Error creating conversation:', error)
+                        // Still navigate to chat
+                        window.location.href = `/chat?conversation=mission-${mission.id}`
+                      }
+                    }}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chat
+                  </Button>
+                )}
               </div>
             ) : (
               <Button asChild className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700">

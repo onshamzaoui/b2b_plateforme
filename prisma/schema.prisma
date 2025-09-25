@@ -48,6 +48,14 @@ model User {
   notificationsApplications Boolean @default(true)
   notificationsMarketing Boolean @default(false)
   
+  // Payment Information
+  subscriptionId String?
+  stripeCustomerId String?
+  currentPlan PricingTier @default(FREE)
+  planExpiresAt DateTime?
+  applicationCredits Int @default(0) // For freelancers
+  missionCredits Int @default(0)    // For enterprises
+  
   // Relations
   missions  Mission[] @relation("CompanyMissions")
   applications Application[]
@@ -56,6 +64,11 @@ model User {
   cvs CV[]
   freelancerContracts Contract[] @relation("FreelancerContracts")
   companyContracts Contract[] @relation("CompanyContracts")
+  payments Payment[]
+  subscription Subscription?
+  // Chat relations
+  sentMessages Message[]
+  conversationParticipants ConversationParticipant[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -199,4 +212,125 @@ enum ContractStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  stripePaymentId String?       @unique
+  amount          Float
+  currency        String        @default("eur")
+  status          PaymentStatus @default(PENDING)
+  type            PaymentType
+  description     String?
+  metadata        Json?         // For storing additional payment data
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  user            User          @relation(fields: [userId], references: [id])
+  subscription    Subscription?
+}
+
+model Subscription {
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  paymentId         String?            @unique
+  stripeSubscriptionId String?         @unique
+  pricingTier       PricingTier
+  status            SubscriptionStatus @default(ACTIVE)
+  startDate         DateTime           @default(now())
+  endDate           DateTime?
+  cancelAtPeriodEnd Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  // Relations
+  user              User               @relation(fields: [userId], references: [id])
+  payment           Payment?           @relation(fields: [paymentId], references: [id])
+}
+
+enum PricingTier {
+  // Freelancer plans
+  FREE
+  PRO
+  EXPERT
+  
+  // Enterprise plans
+  STARTER
+  BUSINESS
+  ENTERPRISE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentType {
+  SUBSCRIPTION
+  ONE_TIME
+  APPLICATION_CREDITS
+  MISSION_CREDITS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  TRIAL
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  channelName String @unique // e.g., "mission-123" or "user-456-789"
+  missionId String?  // If it's a mission-related conversation
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  messages  Message[]
+  participants ConversationParticipant[]
+  
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime @default(now())
+  
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  messageType    MessageType @default(TEXT)
+  createdAt      DateTime @default(now())
+  
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  @@map("messages")
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
 }

@@ -59,7 +59,7 @@ export default function InvoicesPage() {
   }
 
   if (loading) {
-    return <div className="container py-8 text-center">Chargement...</div>
+    return <div className="py-8 px-4 mx-auto w-screen text-center">Chargement...</div>
   }
 
   const pendingInvoices = invoices.filter(i => i.status === "PENDING")

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,16 +11,24 @@ import { useToast } from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2 } from "lucide-react"
+import { CalendarIcon, Plus, Trash2, AlertTriangle, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useSession } from "next-auth/react"
 
 export default function CreateMissionPage() {
   const { toast } = useToast()
   const router = useRouter()
+  const { data: session } = useSession()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    currentPlan: string
+    planExpiresAt: string | null
+    isExpired: boolean
+  } | null>(null)
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true)
 
   // Champs principaux
   const [title, setTitle] = useState("")
@@ -54,6 +62,27 @@ export default function CreateMissionPage() {
     setSkills(skills.filter((skill) => skill !== skillToRemove))
   }
 
+  // Load subscription info
+  useEffect(() => {
+    const loadSubscriptionInfo = async () => {
+      if (!session?.user?.id) return
+      
+      try {
+        const response = await fetch("/api/user/current-plan")
+        if (response.ok) {
+          const data = await response.json()
+          setSubscriptionInfo(data)
+        }
+      } catch (error) {
+        console.error("Erreur chargement abonnement:", error)
+      } finally {
+        setIsLoadingSubscription(false)
+      }
+    }
+
+    loadSubscriptionInfo()
+  }, [session?.user?.id])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -78,9 +107,24 @@ export default function CreateMissionPage() {
         }),
       })
       if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Réponse API:", res.status, errorText)
-        throw new Error("Erreur lors de la création")
+        const errorData = await res.json()
+        console.error("Réponse API:", res.status, errorData)
+        
+        // Handle payment required error
+        if (res.status === 402 && errorData.code === "PAYMENT_REQUIRED") {
+          toast({
+            title: "Abonnement requis",
+            description: errorData.error || "Vous devez avoir un abonnement actif pour publier des missions.",
+            variant: "destructive",
+          })
+          // Redirect to pricing page
+          setTimeout(() => {
+            router.push("/tarifs")
+          }, 2000)
+          return
+        }
+        
+        throw new Error(errorData.error || "Erreur lors de la création")
       }
 
 
@@ -100,6 +144,57 @@ export default function CreateMissionPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Check subscription status and block access if needed
+  if (!isLoadingSubscription && subscriptionInfo && (subscriptionInfo.currentPlan === 'FREE' || subscriptionInfo.isExpired)) {
+    return (
+      <div className="container mx-auto w-screen py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold mb-2">Publier une mission</h1>
+            <p className="text-muted-foreground">
+              Décrivez précisément votre besoin pour attirer les meilleurs freelances.
+            </p>
+          </div>
+
+          <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <AlertTriangle className="h-16 w-16 text-orange-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-orange-800 dark:text-orange-200 mb-2">
+                    Abonnement requis
+                  </h2>
+                  <p className="text-orange-700 dark:text-orange-300 mb-4">
+                    Vous devez avoir un abonnement actif pour publier des missions.
+                    {subscriptionInfo.currentPlan === 'FREE' 
+                      ? ' Passez à un plan payant pour publier des missions illimitées.'
+                      : ' Votre abonnement a expiré. Renouvelez-le pour continuer à publier des missions.'
+                    }
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button asChild className="bg-orange-600 hover:bg-orange-700">
+                      <a href="/tarifs" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Voir les plans disponibles
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <a href="/dashboard/entreprise">
+                        Retour au tableau de bord
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -321,7 +416,15 @@ export default function CreateMissionPage() {
             <Button type="button" variant="outline">
               Enregistrer en brouillon
             </Button>
-            <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="bg-violet-600 hover:bg-violet-700" 
+              disabled={
+                isSubmitting || 
+                isLoadingSubscription || 
+                (subscriptionInfo ? (subscriptionInfo.currentPlan === 'FREE' || subscriptionInfo.isExpired) : false)
+              }
+            >
               {isSubmitting ? "Publication en cours..." : "Publier la mission"}
             </Button>
           </div>

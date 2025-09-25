@@ -51,7 +51,7 @@ export default function EntrepriseDashboard() {
 
 
   if (loading) {
-    return <div className="p-6">Chargement...</div>
+    return <div className="mx-auto w-screen text-center pt-8">Chargement...</div>
   }
 
   return (
